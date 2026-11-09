@@ -333,8 +333,23 @@ def _shape_d(el, tag):
     return None
 
 
+AVISOS = []
+
+
+def _oscuro(color):
+    c = (color or "").strip().lower()
+    if c in ("black", "#000", "#000000"):
+        return True
+    if c.startswith("#") and len(c) == 7:
+        r_, g_, b_ = (int(c[i:i + 2], 16) for i in (1, 3, 5))
+        return 0.299 * r_ + 0.587 * g_ + 0.114 * b_ < 128
+    return False
+
+
 def leer_svg(path):
-    """Contornos rellenos del SVG (en coordenadas de la hoja) con el id del grupo que los contiene."""
+    """Contornos rellenos del SVG (en coordenadas de la hoja) con el id del grupo que los contiene.
+    Los trazos sin relleno se ignoran (son las guías); si alguno es oscuro, se avisa:
+    seguramente es un dibujo hecho con línea que hay que convertir a forma."""
     root = ET.parse(str(path)).getroot()
     shapes = []
 
@@ -348,6 +363,9 @@ def leer_svg(path):
         if st2.get("display") == "none":
             return
         d = _shape_d(el, tag)
+        if d and st2.get("fill", "#000") in ("none", "transparent") and _oscuro(st2.get("stroke")):
+            AVISOS.append(f"{Path(path).name}: trazo sin relleno en «{'/'.join(i for i in ids2 if i) or tag}»; "
+                          "en Affinity selecciónalo y usa Layer › Expand Stroke antes de exportar")
         if d and st2.get("fill", "#000") not in ("none", "transparent"):
             rec = RecordingPen()
             parse_path(d, TransformPen(rec, t2))
@@ -503,6 +521,8 @@ def importar(paths, acentos=True, conservar_ancho=False):
             print(f"  {g.glyphname}: regenerada con el nuevo {base}")
     font.save(str(C.SFD))
     print(f"{len(cambiados)} glifos actualizados en {C.rel(C.SFD)}")
+    for aviso in dict.fromkeys(AVISOS):
+        print("AVISO:", aviso)
 
 
 def main():

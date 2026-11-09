@@ -21,6 +21,7 @@ Cómo se comparten el pipeline y sus actualizaciones: [docs/proyectos.md](docs/p
 | 3 Vectorizar | Traza cada glifo y lo importa al maestro | Potrace + FontForge | `importar` |
 | — Completar | Base desde vectores existentes + construcciones propias | fontTools | `completar` |
 | 4 Limpiar | Nodos, extremos, dirección; correcciones ópticas a mano | FontForge (+ Affinity) | `limpiar` |
+| — Curvas | Peines de curvatura y reporte: extremos, quiebres, G2 | fontTools | `curvas` |
 | 5 Ensamblar | Maestro `sources/<slug>.sfd` en Git | FontForge | `maestro` |
 | 6 Expandir | Acentos como componentes | FontForge | `limpiar` |
 | 7 Espaciar y kernear | Espaciado por lados, kerning por perfiles, revisión manual | fontTools, FontForge | `estabilizar` |
@@ -28,7 +29,7 @@ Cómo se comparten el pipeline y sus actualizaciones: [docs/proyectos.md](docs/p
 | 8 OpenType | `sources/features.fea` | FontForge | — |
 | 9 Build y QA | OTF, TTF, WOFF2, Font Bakery y PDF de pruebas | FontForge, fontTools, drawbot-skia | `build`, `qa`, `pruebas` |
 
-Metodología y bibliografía: [docs/pipeline.md](docs/pipeline.md). Hojas de Affinity: [docs/hojas.md](docs/hojas.md).
+Metodología y bibliografía: [docs/pipeline.md](docs/pipeline.md). Vectorización y calidad de curvas: [docs/vectorizacion.md](docs/vectorizacion.md). Hojas de Affinity: [docs/hojas.md](docs/hojas.md).
 
 ## Estructura
 

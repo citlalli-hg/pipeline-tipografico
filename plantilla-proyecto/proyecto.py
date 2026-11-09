@@ -27,6 +27,12 @@ BASELINE_SHIFT = 0
 # DRAWN: glifos que se dibujan a mano (plantilla). None = núcleo completo (A–Z, a–z, cifras, signos, acentos).
 DRAWN = None
 
+# --- Curvas (opcional) ----------------------------------------------------------------
+# Puntos en extremos, asas H/V y armonización G2 al completar: None, "bocetos" o lista de glifos.
+LIMPIAR_CURVAS = None
+# Potrace para glifos escaneados (ver pipeline/docs/vectorizacion.md)
+# POTRACE = {"alphamax": 1.0, "opttolerance": 0.2, "turdsize": 10}
+
 # --- Espaciado provisional por lados (opcional, método de Tracy) --------------------------
 # ESPACIADO = {"n": ("recto", "recto"), "o": ("redondo", "redondo"), ...}
 ESPACIADO = {}

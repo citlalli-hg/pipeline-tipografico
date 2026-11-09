@@ -25,6 +25,10 @@ runs:
       if: steps.maestro.outputs.existe == 'true'
       shell: bash
       run: python3 pipeline/scripts/qa.py || echo "Font Bakery reportó problemas (ver proofs/fontbakery.md)"
+    - name: Revisión de curvas (peines de curvatura)
+      if: steps.maestro.outputs.existe == 'true'
+      shell: bash
+      run: python3 pipeline/scripts/12_curvas.py
     - name: PDF de pruebas
       if: steps.maestro.outputs.existe == 'true'
       shell: bash

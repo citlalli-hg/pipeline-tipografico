@@ -49,7 +49,9 @@ def potrace(pbm):
     out = Path(tempfile.mkdtemp()) / (pbm.stem + ".svg")
     # -s SVG, -a 1.0 suavizado de esquinas, -O 0.2 tolerancia de optimización de curvas,
     # -t 10 descarta manchas menores a 10 px
-    subprocess.run(["potrace", str(pbm), "-s", "-a", "1.0", "-O", "0.2", "-t", "10",
+    p = C.POTRACE
+    subprocess.run(["potrace", str(pbm), "-s", "-a", str(p["alphamax"]), "-O", str(p["opttolerance"]),
+                    "-t", str(p["turdsize"]),
                     "-o", str(out)], check=True)
     return out
 
