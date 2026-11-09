@@ -157,3 +157,158 @@ def accent_on(f, base, accent_cs, extra=()):
     return f.get(base) + move(accent_cs, dx=dx) + list(extra)
 
 
+
+
+# --- Recortes y transformaciones para construir glifos con partes de otros ----------
+
+def rotate(cs, deg, cx=0, cy=0):
+    """Gira los contornos `deg` grados (antihorario) alrededor de (cx, cy)."""
+    r = math.radians(deg)
+    co, si = math.cos(r), math.sin(r)
+    moved = transform(cs, dx=-cx, dy=-cy)
+    return transform(moved, a=co, b=si, c=-si, d=co, dx=cx, dy=cy)
+
+
+def scale(cs, sx, sy=None, cx=0, cy=0):
+    """Escala alrededor de (cx, cy). Ojo: escalar cambia los grosores; para
+    conservar el trazo, recorta y desplaza partes en vez de escalar."""
+    sy = sx if sy is None else sy
+    return transform(move(cs, dx=-cx, dy=-cy), a=sx, d=sy, dx=cx, dy=cy)
+
+
+def mirror_x(cs, axis=None):
+    """Espejo horizontal sobre la vertical x = axis (por defecto, el centro de la tinta)."""
+    if axis is None:
+        x0, _, x1, _ = bounds(cs)
+        axis = (x0 + x1) / 2
+    return transform(cs, a=-1, dx=2 * axis)
+
+
+def _segments(ctr):
+    """Contorno → lista de segmentos [p0, ..., pN] (2 puntos = recta, 4 = cúbica)."""
+    segs, cur, start = [], None, None
+    for op, args in ctr:
+        if op == "moveTo":
+            cur = start = args[0]
+        elif op == "lineTo":
+            segs.append([cur, args[0]])
+            cur = args[0]
+        elif op == "curveTo":
+            segs.append([cur, *args])
+            cur = args[-1]
+        elif op == "qCurveTo":
+            # cuadrática → cúbica (solo el caso de un punto de control)
+            q = args[0]
+            p3 = args[-1]
+            c1 = (cur[0] + 2 / 3 * (q[0] - cur[0]), cur[1] + 2 / 3 * (q[1] - cur[1]))
+            c2 = (p3[0] + 2 / 3 * (q[0] - p3[0]), p3[1] + 2 / 3 * (q[1] - p3[1]))
+            segs.append([cur, c1, c2, p3])
+            cur = p3
+        elif op in ("closePath", "endPath"):
+            if cur != start:
+                segs.append([cur, start])
+    return segs
+
+
+def _split(seg, f):
+    """Parte un segmento donde f(punto) = 0 (f lineal)."""
+    from fontTools.misc.bezierTools import solveCubic, splitCubicAtT
+    if len(seg) == 2:
+        a, b = f(seg[0]), f(seg[1])
+        if (a < 0 < b or b < 0 < a):
+            t = a / (a - b)
+            p = (seg[0][0] + t * (seg[1][0] - seg[0][0]), seg[0][1] + t * (seg[1][1] - seg[0][1]))
+            return [[seg[0], p], [p, seg[1]]]
+        return [seg]
+    v = [f(p) for p in seg]
+    # f(B(t)) como polinomio cúbico en t
+    a = -v[0] + 3 * v[1] - 3 * v[2] + v[3]
+    b = 3 * v[0] - 6 * v[1] + 3 * v[2]
+    c = -3 * v[0] + 3 * v[1]
+    d = v[0]
+    ts = sorted(t for t in solveCubic(a, b, c, d) if 1e-6 < t < 1 - 1e-6) if abs(a) > 1e-12 else None
+    if ts is None:
+        from fontTools.misc.bezierTools import solveQuadratic
+        ts = sorted(t for t in solveQuadratic(b, c, d) if 1e-6 < t < 1 - 1e-6)
+    if not ts:
+        return [seg]
+    parts = splitCubicAtT(*seg, *ts)
+    return [list(p) for p in parts]
+
+
+def recortar(cs, a, b, c):
+    """Conserva la parte de los contornos donde a·x + b·y + c >= 0 y cierra el
+    corte con una recta. Sirve para tomar partes de un glifo (el asta de una l,
+    las panzas de una B, la parte alta de una S...). Los puentes que quedan
+    sobre la línea de corte no tienen área; FontForge los limpia con
+    Remove Overlap (07_a_sfd.py)."""
+    def f(p):
+        return a * p[0] + b * p[1] + c
+
+    out = []
+    for ctr in cs:
+        segs = []
+        for s in _segments(ctr):
+            segs += _split(s, f)
+        if not segs:
+            continue
+
+        def inside(s):
+            if len(s) == 2:
+                m = ((s[0][0] + s[1][0]) / 2, (s[0][1] + s[1][1]) / 2)
+            else:
+                from fontTools.misc.bezierTools import splitCubicAtT
+                m = splitCubicAtT(*s, 0.5)[0][-1]
+            return f(m) >= -1e-9
+
+        flags = [inside(s) for s in segs]
+        if all(flags):
+            out.append(ctr)
+            continue
+        if not any(flags):
+            continue
+        k = flags.index(False)            # empieza después de un tramo fuera
+        order = segs[k:] + segs[:k]
+        oflags = flags[k:] + flags[:k]
+        new, last = [], None
+        for s, ok in zip(order, oflags):
+            if not ok:
+                continue
+            if last is None:
+                new.append(("moveTo", (s[0],)))
+            elif last != s[0]:
+                new.append(("lineTo", (s[0],)))
+            new.append(("lineTo", (s[1],)) if len(s) == 2 else ("curveTo", tuple(s[1:])))
+            last = s[-1]
+        if new:
+            new.append(("closePath", ()))
+            out.append(new)
+    return out
+
+
+def recortar_x(cs, x, conservar="izq"):
+    """Recorta por la vertical x: conserva la izquierda ('izq') o la derecha ('der')."""
+    return recortar(cs, -1, 0, x) if conservar == "izq" else recortar(cs, 1, 0, -x)
+
+
+def recortar_y(cs, y, conservar="abajo"):
+    """Recorta por la horizontal y: conserva abajo ('abajo') o arriba ('arriba')."""
+    return recortar(cs, 0, -1, y) if conservar == "abajo" else recortar(cs, 0, 1, -y)
+
+
+def caja(cs, x0, y0, x1, y1):
+    """Conserva solo lo que cae dentro del rectángulo."""
+    return recortar_y(recortar_y(recortar_x(recortar_x(cs, x0, "der"), x1, "izq"), y0, "arriba"), y1, "abajo")
+
+
+def estrechar(cs, x, d):
+    """Angosta un glifo `d` unidades sin cambiar sus grosores: quita la franja
+    vertical de ancho d centrada en x y junta las dos mitades. El corte debe cruzar solo trazos
+    horizontales (arriba y abajo de una O, por ejemplo)."""
+    return recortar_x(cs, x - d / 2, "izq") + move(recortar_x(cs, x + d / 2, "der"), dx=-d)
+
+
+def achatar(cs, y, d):
+    """Reduce la altura `d` unidades sin cambiar grosores: quita la franja
+    horizontal de alto d centrada en y y junta las dos mitades. El corte debe cruzar solo trazos verticales."""
+    return recortar_y(cs, y - d / 2, "abajo") + move(recortar_y(cs, y + d / 2, "arriba"), dy=-d)

@@ -2,6 +2,10 @@
 
 Lo más reciente arriba. Cada fuente recibe estos cambios por un PR de Dependabot.
 
+## 2026-11-08 — Construir glifos con partes de otros
+
+- `contornos.py`: `recortar` (corte por una recta, con curvas), `recortar_x`, `recortar_y`, `caja`, `estrechar` y `achatar` (quitan una franja sin cambiar grosores), `rotate`, `scale`, `mirror_x`. Sirven en `proyecto/completar.py` para armar cifras y signos con astas, panzas y terminales de las letras de la propia fuente. Sterna los usa en su primera revisión.
+
 ## 2026-11-08 — Pipeline común
 
 - El pipeline sale de Elocaso y se vuelve compartido: submódulo `pipeline/` en cada fuente.
