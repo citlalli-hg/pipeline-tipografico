@@ -57,6 +57,15 @@ OVERSHOOT = None            # sobresalto de redondas; None = medirlo en la o
 FUENTE_BASE = None          # ruta relativa a la raíz del proyecto
 BASELINE_SHIFT = 0
 
+# Limpieza de curvas al completar (pipeline/scripts/curvas.py): puntos en los
+# extremos, asas H/V y armonización G2. None = no se toca nada; "bocetos" = solo
+# los glifos que proyecto/completar.py marca como boceto; o una lista de nombres.
+# No se aplica a glifos dibujados a mano salvo que se nombren aquí.
+LIMPIAR_CURVAS = None
+
+# Potrace (02_importar.py): ver pipeline/docs/vectorizacion.md
+POTRACE = {"alphamax": 1.0, "opttolerance": 0.2, "turdsize": 10}
+
 # Espaciado provisional por lados (método de Tracy). Vacío = no se toca.
 LADOS_MIN = {"recto": 40, "redondo": 28, "diagonal": 8, "abierto": 14}
 LADOS_MAY = {"recto": 55, "redondo": 38, "diagonal": 8, "abierto": 20}

@@ -133,6 +133,24 @@ def run_hook(f):
     return mod.construir(f)
 
 
+def limpiar_curvas(f):
+    """Puntos en extremos, asas H/V y armonización G2 en los glifos elegidos (config.LIMPIAR_CURVAS)."""
+    sel = C.LIMPIAR_CURVAS
+    if not sel:
+        return
+    import curvas as K
+    if sel == "bocetos":
+        nombres = [n for n, _, note in f.new if "boceto" in note]
+    else:
+        nombres = list(sel)
+    total = 0
+    for n in dict.fromkeys(nombres):
+        if f.glyphs.get(n):
+            f.glyphs[n], movidos = K.limpiar(f.glyphs[n])
+            total += movidos
+    f.notas.append(f"Curvas limpiadas (extremos, asas H/V, G2) en {len(set(nombres))} glifos: {total} nodos ajustados.")
+
+
 def save(f, features):
     order = [".notdef"] + [g for g in f.order if g != ".notdef"]
     charstrings = {}
@@ -193,6 +211,7 @@ def main():
         sys.exit("proyecto.py no define FUENTE_BASE: esta etapa necesita una fuente de partida.")
     f = Draft(ROOT / C.FUENTE_BASE, C.BASELINE_SHIFT)
     features = run_hook(f) or FEATURES_MINIMAS
+    limpiar_curvas(f)
     spaced = respace(f) if C.ESPACIADO else 0
     save(f, features)
     report(f, spaced)

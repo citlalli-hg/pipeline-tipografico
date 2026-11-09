@@ -2,6 +2,16 @@
 
 Lo más reciente arriba. Cada fuente recibe estos cambios por un PR de Dependabot.
 
+## 2026-11-08 — Calidad de curvas y vectorización
+
+- `scripts/curvas.py`: diagnóstico (extremo sin nodo, quiebre, asa casi H/V, salto de curvatura G2), puntos en extremos, asas H/V y armonización G2 (algoritmo de Simon Cozens).
+- `scripts/12_curvas.py` (`mise run curvas`): `proofs/curvas.md` y peines de curvatura por familia en `proofs/curvatura/`, como en el modelado clase A del diseño industrial. Se genera en cada build de CI.
+- `LIMPIAR_CURVAS` en `proyecto.py`: limpia curvas al completar solo en los glifos indicados (`"bocetos"` o lista). Por defecto no toca nada.
+- `POTRACE` en `proyecto.py`: parámetros de Potrace (mismos valores por defecto que antes).
+- `11_hojas.py importar` avisa si una hoja trae trazos sin relleno (usar **Layer › Expand Stroke**).
+- `docs/vectorizacion.md`: reglas de contorno, peines, armonización (con validación en Sterna), Otsu, Potrace, ajuste de curvas de Schneider, exportación SVG desde Affinity y bibliografía.
+- Verificado: la salida de Elocaso no cambia.
+
 ## 2026-11-08 — Hojas de revisión en el pipeline
 
 - **Estabilizar** exporta las hojas de revisión desde la fuente compilada y las sube con el maestro.
