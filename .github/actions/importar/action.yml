@@ -13,7 +13,7 @@ runs:
       id: hojas
       shell: bash
       run: |
-        cambios=$(git diff --name-only origin/main...HEAD -- 'hojas/[0-9][0-9]-*.svg' | tr '\n' ' ')
+        cambios=$(git diff --name-only origin/main...HEAD -- 'hojas/[0-9][0-9]-*.svg' 'hojas/semilla/S*.svg' 'template/semilla/S*.svg' | tr '\n' ' ')
         echo "lista=$cambios" >> "$GITHUB_OUTPUT"
         echo "Hojas a importar: $cambios"
     - name: Importar al maestro
@@ -26,12 +26,13 @@ runs:
         python3 pipeline/scripts/04_build.py
         python3 pipeline/scripts/05_pruebas.py
         python3 pipeline/scripts/11_hojas.py exportar
+        python3 pipeline/scripts/11_hojas.py semilla
     - name: Subir el resultado a la rama
       shell: bash
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add sources/*.sfd hojas/
+        git add sources/*.sfd hojas/ template/
         git commit -m "Hojas importadas al maestro por GitHub Actions" || echo "sin cambios"
         git pull --rebase origin "${GITHUB_REF_NAME}"
         git push

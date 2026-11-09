@@ -4,7 +4,7 @@ name: Importar hojas al maestro
 on:
   push:
     branches: ["importar/**"]
-    paths: ["hojas/*.svg"]
+    paths: ["hojas/*.svg", "hojas/semilla/*.svg", "template/semilla/*.svg"]
   workflow_dispatch:
 
 permissions:

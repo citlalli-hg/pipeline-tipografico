@@ -41,6 +41,7 @@ runs:
       run: |
         python3 pipeline/scripts/04_build.py
         python3 pipeline/scripts/11_hojas.py exportar
+        python3 pipeline/scripts/11_hojas.py semilla
     - name: Subir el resultado a la rama
       shell: bash
       run: |

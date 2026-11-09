@@ -2,7 +2,18 @@
 
 Lo aprendido con Sterna: las letras de partida se pueden limpiar y armonizar, y con sus piezas se construye casi todo lo demás. Pero lo que se construye sin un dibujo propio queda como boceto (el 2, el 7, el &, la coma). El **set semilla** son los 68 glifos que conviene dibujar desde el principio, en este orden, para que el resto (≈ 250 glifos de Latin-1 y Windows-1252) salga de ellos con buena calidad.
 
-En `proyecto.py`: `DRAWN = "semilla"` → `mise run plantilla` genera las hojas de dibujo con este set y en este orden.
+En `proyecto.py`: `DRAWN = "semilla"` → `mise run plantilla` genera las hojas de dibujo **para imprimir** con este set y en este orden.
+
+## Plantilla SVG para dibujar en Affinity
+
+`mise run plantilla-semilla` → `template/semilla/S01-controles.svg` … `S14-especiales.svg`: una hoja por grupo del set semilla, con celdas vacías, guías (línea base, altura de x, mayúsculas, ascendentes, descendentes y sobresaltos), etiquetas y las dos marcas de registro. Si el proyecto ya tiene fuente, las letras de control aparecen en gris como referencia.
+
+1. **File › Open** → `template/semilla/S01-controles.svg`. Dibuja n, o, H, O dentro de su celda, con formas rellenas (si usas línea: **Layer › Expand Stroke**). No muevas los cuadros negros de las esquinas.
+2. **File › Export › SVG**, preset **SVG (for export)**, **Rasterise: Nothing**, encima del mismo archivo (o con sufijo: `S01-controles-iteracion-2.svg`).
+3. Rama `importar/semilla` y push: GitHub Actions importa cada glifo al maestro (lo crea si no existe, y crea el maestro si el proyecto es nuevo), compila y genera las pruebas. En local: `python pipeline/scripts/ff.py 11_hojas.py importar template/semilla/S01-controles.svg`.
+4. Sigue con S02, S03… en orden. Cuando los controles estén aprobados, `mise run completar` genera el resto.
+
+Para corregir lo ya dibujado, `mise run hojas-semilla` → `hojas/semilla/` con los glifos del maestro en el mismo formato. `mise run control` revisa que todas las hojas sean SVG válidos, cerrados y con sus marcas.
 
 ## 1. Controles (4): n o H O
 
