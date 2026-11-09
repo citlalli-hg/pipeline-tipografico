@@ -312,3 +312,54 @@ def achatar(cs, y, d):
     """Reduce la altura `d` unidades sin cambiar grosores: quita la franja
     horizontal de alto d centrada en y y junta las dos mitades. El corte debe cruzar solo trazos verticales."""
     return recortar_y(cs, y - d / 2, "abajo") + move(recortar_y(cs, y + d / 2, "arriba"), dy=-d)
+
+
+def _flatten(ctr, n=24):
+    pts = []
+    for op, args in ctr:
+        if op == "moveTo":
+            pts = [args[0]]
+        elif op == "lineTo":
+            pts.append(args[0])
+        elif op == "curveTo":
+            p0 = pts[-1]
+            c1, c2, p3 = args
+            for i in range(1, n + 1):
+                t = i / n
+                m = 1 - t
+                pts.append((m ** 3 * p0[0] + 3 * m * m * t * c1[0] + 3 * m * t * t * c2[0] + t ** 3 * p3[0],
+                            m ** 3 * p0[1] + 3 * m * m * t * c1[1] + 3 * m * t * t * c2[1] + t ** 3 * p3[1]))
+    return pts
+
+
+def tramos_y(cs, y):
+    """Tramos de tinta [(x0, x1), ...] que cruza la horizontal y (par/impar)."""
+    xs = []
+    for ctr in cs:
+        pts = _flatten(ctr)
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:] + pts[:1]):
+            if (y0 <= y < y1) or (y1 <= y < y0):
+                xs.append(x0 + (y - y0) * (x1 - x0) / (y1 - y0))
+    xs.sort()
+    return [(xs[i], xs[i + 1]) for i in range(0, len(xs) - 1, 2)]
+
+
+def tramos_x(cs, x):
+    """Tramos de tinta [(y0, y1), ...] que cruza la vertical x."""
+    return tramos_y(transform(cs, a=0, b=1, c=1, d=0), x)
+
+
+def estirar(cs, y, d):
+    """Alarga un glifo `d` unidades en vertical sin cambiar grosores: lo corta
+    por la horizontal y, sube la mitad de arriba y rellena el hueco con los
+    trazos rectos que cruzaban el corte (los costados de una o, por ejemplo)."""
+    rell = [rect(x0, y - 0.5, x1, y + d + 0.5) for x0, x1 in tramos_y(cs, y)]
+    return recortar_y(cs, y, "abajo") + move(recortar_y(cs, y, "arriba"), dy=d) + rell
+
+
+def ensanchar(cs, x, d):
+    """Ensancha un glifo `d` unidades sin cambiar grosores: lo corta por la
+    vertical x, mueve la mitad derecha y rellena con los trazos horizontales
+    que cruzaban el corte (las barras de una B o un 3, por ejemplo)."""
+    rell = [rect(x - 0.5, y0, x + d + 0.5, y1) for y0, y1 in tramos_x(cs, x)]
+    return recortar_x(cs, x, "izq") + move(recortar_x(cs, x, "der"), dx=d) + rell
