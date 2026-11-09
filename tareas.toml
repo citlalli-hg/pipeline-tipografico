@@ -47,6 +47,14 @@ run = [
   "python pipeline/scripts/ff.py 07_a_sfd.py --estable --forzar",
 ]
 
+[plantilla-semilla]
+description = "Plantilla SVG del set semilla para dibujar en Affinity (template/semilla/, celdas vacías)"
+run = "python pipeline/scripts/11_hojas.py semilla --vacias"
+
+[hojas-semilla]
+description = "Hojas del set semilla con los glifos del maestro, para corregir en Affinity (hojas/semilla/)"
+run = ["python pipeline/scripts/ff.py 04_build.py", "python pipeline/scripts/11_hojas.py semilla"]
+
 [hojas]
 description = "Exporta las hojas de familia (SVG) para corregir glifos en Affinity"
 run = ["python pipeline/scripts/ff.py 04_build.py", "python pipeline/scripts/11_hojas.py exportar"]

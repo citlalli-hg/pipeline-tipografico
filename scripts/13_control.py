@@ -104,13 +104,18 @@ def control_svg(path, es_hoja):
     shapes = H.leer_svg(path)
     avisos += list(dict.fromkeys(H.AVISOS))
     if es_hoja:
-        fam = H.familia_de(path)
         ids = {el.get("id") for el in root.iter() if el.get("id")}
         if not any("registro" in (i or "") for i in ids):
             errores.append(f"{path.name}: faltan las marcas de registro")
-        man = C.ROOT / "hojas" / "manifiesto.json"
-        if fam and man.exists():
-            esperados = json.loads(man.read_text(encoding="utf-8"))["familias"].get(fam, {})
+        try:
+            man = H._manifiesto_de(path)
+        except FileNotFoundError:
+            man = None
+        fam = H.familia_de(path)
+        if fam is None:
+            errores.append(f"{path.name}: el nombre no corresponde a ninguna hoja")
+        if fam and man:
+            esperados = man["familias"].get(fam, {})
             faltan = [g for g in esperados if g not in ids]
             if faltan:
                 errores.append(f"{path.name}: faltan los grupos de {', '.join(faltan)}")
@@ -135,11 +140,12 @@ def main():
         if len(a) > 60:
             lines.append(f"- … y {len(a) - 60} avisos más")
         lines.append("")
-    for carpeta, es_hoja in ((C.ROOT / "hojas", True), (C.ROOT / "glyphs-svg", False)):
+    for carpeta, es_hoja in ((C.ROOT / "hojas", True), (C.ROOT / "hojas" / "semilla", True),
+                             (C.ROOT / "template" / "semilla", True), (C.ROOT / "glyphs-svg", False)):
         svgs = sorted(carpeta.glob("*.svg")) if carpeta.is_dir() else []
         if not svgs:
             continue
-        lines += [f"## `{carpeta.name}/` ({len(svgs)} SVG)", "", "| Archivo | Contornos | Errores | Avisos |",
+        lines += [f"## `{C.rel(carpeta)}/` ({len(svgs)} SVG)", "", "| Archivo | Contornos | Errores | Avisos |",
                   "| --- | --- | --- | --- |"]
         detalle = []
         for p in svgs:

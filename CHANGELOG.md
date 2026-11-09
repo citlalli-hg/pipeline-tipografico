@@ -2,6 +2,12 @@
 
 Lo más reciente arriba. Cada fuente recibe estos cambios por un PR de Dependabot.
 
+## 2026-11-08 — Plantilla SVG del set semilla
+
+- `11_hojas.py semilla [--vacias]` (`mise run plantilla-semilla`, `mise run hojas-semilla`): 14 hojas del set semilla para Affinity, vacías (`template/semilla/`) o con los glifos del maestro (`hojas/semilla/`). Se importan como las hojas de familia; si el glifo o el maestro no existen, se crean. Las celdas usan los anchos guardados en el manifiesto de cada carpeta.
+- Guía de sobresalto de mayúsculas en las hojas cuando `ESTABILIZAR_MAYUSCULAS` está activo.
+- Estabilizar e Importar (CI) regeneran `hojas/semilla/`; Importar acepta hojas de `hojas/semilla/` y `template/semilla/`; `13_control.py` revisa también esas carpetas.
+
 ## 2026-11-08 — Set semilla
 
 - `docs/set-semilla.md`: los 68 glifos que conviene dibujar desde el inicio (controles, minúsculas y mayúsculas por familia, 16 no letras) y qué genera el pipeline con cada uno.

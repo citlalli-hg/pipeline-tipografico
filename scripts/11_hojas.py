@@ -6,6 +6,12 @@ Exportar (solo fontTools):
         si no existe, sources/<slug>-estable.otf
         → hojas/<familia>.svg, una por familia de glifos
 
+Plantilla del set semilla (solo fontTools; ver docs/set-semilla.md):
+    python pipeline/scripts/11_hojas.py semilla [FUENTE.otf] [--vacias]
+        → hojas/semilla/S01-controles.svg … S14-especiales.svg con los glifos del maestro, o
+          template/semilla/… con --vacias (celdas vacías para dibujar desde cero; si hay
+          fuente, las referencias salen en gris). Se importan igual que las hojas de familia.
+
 Importar (con el Python de FontForge):
     python pipeline/scripts/ff.py 11_hojas.py importar [--sin-acentos] [--conservar-ancho] [hojas/arcos.svg ...]
         → actualiza sources/<slug>.sfd solo con los glifos que cambiaron
@@ -179,8 +185,96 @@ def marks(width, height):
 # --- Exportar --------------------------------------------------------------------------------
 
 def overshoot(glyphs):
+    if C.OVERSHOOT is not None:
+        return C.OVERSHOOT, C.OVERSHOOT
+    if not glyphs.get("o"):
+        return 10, 10                      # plantilla sin fuente: sobresalto típico
     b = bounds(glyphs["o"])
     return round(b[3] - C.X_HEIGHT), round(-b[1])
+
+
+# --- Plantilla del set semilla (docs/set-semilla.md) -------------------------------------------
+# Las mismas familias y el mismo orden de dibujo que el set semilla. Se importan
+# igual que las hojas de familia; si el glifo no existe en el maestro, se crea.
+FAMILIAS_SEMILLA = {
+    "S01-controles": {"glifos": ["n", "o", "H", "O"], "ref": []},
+    "S02-arcos": {"glifos": ["h", "m", "u", "r"], "ref": ["n"]},
+    "S03-panzas": {"glifos": ["b", "d", "p", "q"], "ref": ["n", "o"]},
+    "S04-redondas": {"glifos": ["c", "e", "a", "s", "g"], "ref": ["o"]},
+    "S05-astas": {"glifos": ["i", "l", "j", "f", "t"], "ref": ["n"]},
+    "S06-diagonales": {"glifos": ["v", "w", "x", "y", "k", "z"], "ref": ["n", "o"]},
+    "S07-mayusculas-rectas": {"glifos": ["I", "L", "E", "F", "T"], "ref": ["H"]},
+    "S08-mayusculas-redondas": {"glifos": ["D", "C", "G", "Q"], "ref": ["O"]},
+    "S09-mayusculas-panzas": {"glifos": ["B", "P", "R", "S", "U", "J"], "ref": ["H", "O"]},
+    "S10-mayusculas-diagonales": {"glifos": ["A", "V", "W", "X", "Y", "K", "M", "N", "Z"], "ref": ["H"]},
+    "S11-signos": {"glifos": ["period", "comma", "question", "exclam", "parenleft", "hyphen"], "ref": ["n", "H"]},
+    "S12-acentos": {"glifos": ["acute", "tilde", "cedilla"], "ref": ["n", "o"]},
+    "S13-cifras": {"glifos": ["one", "two", "three", "four", "six", "seven"], "ref": ["H", "O"]},
+    "S14-especiales": {"glifos": ["ampersand"], "ref": ["H", "O"]},
+}
+
+
+def ancho_tipico(g):
+    """Ancho de celda para un glifo que aún no existe (unidades, UPM 1000)."""
+    if g in ("m", "w", "M", "W", "ampersand"):
+        return 760
+    if g in ("i", "l", "j", "I", "J", "f", "t", "r"):
+        return 320
+    if g in ("period", "comma", "exclam", "acute", "tilde", "cedilla", "hyphen", "parenleft"):
+        return 300
+    if g == "question":
+        return 420
+    if g in C.DIGITS or g in ("one", "two", "three", "four", "six", "seven"):
+        return 520
+    if len(g) == 1 and g.isupper():
+        return 660
+    return 520
+
+
+def semilla(font_path, vacias, destino):
+    """Hojas del set semilla para dibujar en Affinity. Con una fuente, sus glifos
+    aparecen para corregirlos (y como referencia en gris); con `vacias`, las
+    celdas editables quedan vacías para dibujar desde cero."""
+    glyphs, adv, cmap_rev = {}, {}, {}
+    if font_path and Path(font_path).exists():
+        from fontTools.ttLib import TTFont
+        t = TTFont(str(font_path))
+        gs = t.getGlyphSet()
+        adv = {n: t["hmtx"][n][0] for n in t.getGlyphOrder()}
+        cmap_rev = {v: k for k, v in t.getBestCmap().items()}
+        for n in t.getGlyphOrder():
+            rec = RecordingPen()
+            gs[n].draw(rec)
+            glyphs[n] = contours_of(rec.value)
+    guias = guias_de(glyphs)
+    FAMILIAS.update(FAMILIAS_SEMILLA)
+    destino = Path(destino)
+    destino.mkdir(parents=True, exist_ok=True)
+    manifest = {"semilla": True, "fuente": Path(font_path).name if font_path else None,
+                "familias": {}, "anchos": {}}
+    for fam, spec in FAMILIAS_SEMILLA.items():
+        anchos = {g: adv.get(g) or ancho_tipico(g) for g in spec["glifos"]}
+        adv_h = {**adv, **anchos}
+        visibles = {g: cs for g, cs in glyphs.items() if not (vacias and g in spec["glifos"])}
+        hashes = escribir_hoja(fam, visibles, adv_h, cmap_rev, guias, destino / f"{fam}.svg",
+                               titulo=f"set semilla · {fam}")
+        manifest["familias"][fam] = hashes
+        manifest["anchos"].update(anchos)
+        print(f"{C.rel(destino / (fam + '.svg'))}: {len(spec['glifos'])} glifos"
+              + (" (celdas vacías)" if vacias else ""))
+    (destino / "manifiesto.json").write_text(json.dumps(manifest, indent=1, ensure_ascii=False), encoding="utf-8")
+
+
+def _manifiesto_de(path):
+    """Manifiesto de la carpeta de la hoja (hojas/ o una carpeta de semilla)."""
+    m = Path(path).parent / "manifiesto.json"
+    if not m.exists():
+        m = HOJAS / "manifiesto.json"
+    man = json.loads(m.read_text(encoding="utf-8"))
+    if man.get("semilla"):
+        FAMILIAS.update(FAMILIAS_SEMILLA)
+    _cargar_extras(man)
+    return man
 
 
 def exportar(font_path):
@@ -219,6 +313,8 @@ def guias_de(glyphs):
     if C.ASCENDER != C.CAP_HEIGHT:
         guias.append((f"ascendentes {C.ASCENDER}", C.ASCENDER, 1.0))
     guias.append((f"descendentes {C.DESCENDER}", C.DESCENDER, 1.0))
+    if C.ESTABILIZAR_MAYUSCULAS:
+        guias.append((f"sobresalto mayúsculas +{C.OVERSHOOT_MAY}", C.CAP_HEIGHT + C.OVERSHOOT_MAY, 0.6))
     return guias
 
 
@@ -450,12 +546,16 @@ def _ink_center(contours):
 def importar(paths, acentos=True, conservar_ancho=False):
     import fontforge
     import psMat
-    font = fontforge.open(str(C.SFD))
-    adv = {g.glyphname: g.width for g in font.glyphs()}
-    manifest = json.loads((HOJAS / "manifiesto.json").read_text(encoding="utf-8"))
-    _cargar_extras(manifest)
+    if C.SFD.exists():
+        font = fontforge.open(str(C.SFD))
+    else:                                   # proyecto nuevo: el maestro nace de la plantilla semilla
+        font = importlib.import_module("02_importar").new_font()
+        print(f"{C.rel(C.SFD)} no existía: lo creo")
+    adv_font = {g.glyphname: g.width for g in font.glyphs()}
     cambiados = []
     for path in paths:
+        manifest = _manifiesto_de(path)
+        adv = {**adv_font, **manifest.get("anchos", {})} if manifest.get("semilla") else adv_font
         fam = familia_de(path)
         if not fam:
             print(f"omito {path}: no es una hoja de familia")
@@ -468,8 +568,17 @@ def importar(paths, acentos=True, conservar_ancho=False):
                 continue
             if same(cs, manifest["familias"].get(fam, {}).get(g)):
                 continue
+            nuevo = g not in font or not len(font[g].foreground)
+            if g not in font:
+                from fontTools.agl import toUnicode
+                u = toUnicode(g)
+                font.createChar(ord(u) if len(u) == 1 else -1, g)
             glyph = font[g]
-            width, lsb, rsb = glyph.width, glyph.left_side_bearing, glyph.right_side_bearing
+            if nuevo:
+                glyph.width = adv.get(g, 600)
+                width, lsb, rsb = glyph.width, C.SIDEBEARING, C.SIDEBEARING
+            else:
+                width, lsb, rsb = glyph.width, glyph.left_side_bearing, glyph.right_side_bearing
             glyph.clear()
             pen = glyph.glyphPen()
             for ctr in cs:
@@ -526,8 +635,17 @@ def importar(paths, acentos=True, conservar_ancho=False):
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ("exportar", "importar"):
+    if len(sys.argv) < 2 or sys.argv[1] not in ("exportar", "importar", "semilla"):
         sys.exit(__doc__)
+    if sys.argv[1] == "semilla":
+        args = [a for a in sys.argv[2:] if not a.startswith("--")]
+        vacias = "--vacias" in sys.argv
+        default = C.ROOT / "fonts" / f"{C.FAMILY}-{C.STYLE}.otf"
+        src = Path(args[0]) if args else (default if default.exists() else
+                                          (C.ESTABLE_OTF if C.ESTABLE_OTF.exists() else None))
+        destino = C.ROOT / ("template" if vacias else "hojas") / "semilla"
+        semilla(src, vacias, destino)
+        return
     if sys.argv[1] == "exportar":
         default = C.ROOT / "fonts" / f"{C.FAMILY}-{C.STYLE}.otf"
         src = Path(sys.argv[2]) if len(sys.argv) > 2 else (default if default.exists()
