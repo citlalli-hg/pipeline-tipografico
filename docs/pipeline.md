@@ -12,6 +12,13 @@ Resumen del proceso. La versión completa, con metodología y bibliografía, est
 5. **Ensamblar** — maestro `.sfd` en FontForge, versionado en Git.
 6. **Expandir** — acentos como componentes (**Element › Build › Build Accented Glyph**), derivación n→m h u r, o→b d p q, l→i j t.
 7. **Espaciar y kernear** — método de Tracy (*HHOHHOOHOO*, *nnonnoonoo*), **Metrics › Auto Width**, **Metrics › Kern By Classes**, pares críticos a mano.
+7b. **Revisar a mano (hojas de Affinity)** — ciclo de corrección sobre el maestro, por familias de glifos (→ [hojas.md](hojas.md)):
+   1. `mise run hojas` (o el workflow **Estabilizar**, que ya las deja en la rama) → `hojas/NN-familia.svg` desde la fuente compilada.
+   2. Rama `importar/<familia>`; abrir la hoja en Affinity (**File › Open**), corregir dentro de cada celda sin mover las marcas de registro.
+   3. **File › Export › SVG**, encima del mismo archivo (o con sufijo: `01-redondas-iteracion-2.svg`).
+   4. Push: el workflow **Importar hojas al maestro** pasa los cambios al `.sfd`, compila, genera las pruebas y vuelve a exportar las hojas. En local: `mise run importar-hojas`.
+   5. Revisar `proofs/pruebas.pdf`, anotar en `brief/bitacora.md` y repetir.
+   Desde la primera corrección a mano, el maestro es la fuente de verdad: **Estabilizar** se detiene para no reemplazarlo (salvo con «forzar»).
 8. **OpenType** — `sources/features.fea`: `case`, `liga`, `calt`.
 9. **Build y QA** — OTF, TTF, WOFF2, Font Bakery y pruebas impresas de cabeza, en espejo y desenfocadas. → `pipeline/scripts/04_build.py`, `pipeline/scripts/05_pruebas.py`
 

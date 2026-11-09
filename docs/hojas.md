@@ -14,8 +14,12 @@ Las hojas agrupan los glifos que comparten estructura, para corregirlos juntos y
 | 08-mayusculas-panzas | B P R U J | H O |
 | 09-mayusculas-diagonales | A V W X Y K M N Z | H |
 | 10-cifras | 0–9 | H |
-| 11-signos | . , : ; ! ? ¡ ¿ ‘ ’ “ ” - – — ( ) « » | n H |
-| 12-especiales | & @ € $ % # ß ð þ ƒ æ œ Æ Œ | n H |
+| 11-signos | . , : ; ! ? ¡ ¿ ‘ ’ “ ” - – — ( ) « » ‹ › ‚ „ … | n H |
+| 12-especiales | & @ € $ % # * / ß ð þ ƒ æ œ Æ Œ | n H |
+| 13-acentos | ´ ` ˆ ˜ ¨ ˇ ˚ ¸ ȷ | n o |
+| 14-otros | lo que tenga contorno y no esté en otra hoja (flechas, variantes…), si hay | n H |
+
+Cada hoja muestra solo los glifos que existen en la fuente. Las acentuadas no tienen hoja: se rehacen con su letra base y su acento (si son componentes, se actualizan solas).
 
 Cada celda tiene las guías de línea base, altura de x, sobresaltos de las redondas (punteadas), mayúsculas y descendentes. El recuadro punteado de la celda marca el ancho de avance del glifo.
 

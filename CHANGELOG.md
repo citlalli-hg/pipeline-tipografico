@@ -2,6 +2,13 @@
 
 Lo más reciente arriba. Cada fuente recibe estos cambios por un PR de Dependabot.
 
+## 2026-11-08 — Hojas de revisión en el pipeline
+
+- **Estabilizar** exporta las hojas de revisión desde la fuente compilada y las sube con el maestro.
+- **Estabilizar** se detiene si el maestro tiene commits hechos a mano (para no perder correcciones); entrada `forzar` para reemplazarlo a propósito. Requiere `fetch-depth: 0` en el workflow del proyecto (plantilla actualizada).
+- Hojas: nueva `13-acentos`, `14-otros` automática (todo glifo con contorno que no esté en otra hoja), ‹ › ‚ „ … en signos, * / en especiales; cada hoja muestra solo los glifos que existen.
+- `docs/pipeline.md`: etapa 7b, ciclo de revisión con las hojas.
+
 ## 2026-11-08 — Construir glifos con partes de otros
 
 - `contornos.py`: `recortar` (corte por una recta, con curvas), `recortar_x`, `recortar_y`, `caja`, `estrechar` y `achatar` (quitan una franja sin cambiar grosores), `estirar` y `ensanchar` (agregan una franja rellenando los trazos rectos que cruzan el corte), `tramos_y` y `tramos_x`, `rotate`, `scale`, `mirror_x`. Sirven en `proyecto/completar.py` para armar cifras y signos con astas, panzas y terminales de las letras de la propia fuente. Sterna los usa en su primera revisión.
