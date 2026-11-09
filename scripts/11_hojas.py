@@ -7,9 +7,11 @@ Exportar (solo fontTools):
         → hojas/<familia>.svg, una por familia de glifos
 
 Importar (con el Python de FontForge):
-    python pipeline/scripts/ff.py 11_hojas.py importar [--sin-acentos] [hojas/arcos.svg ...]
+    python pipeline/scripts/ff.py 11_hojas.py importar [--sin-acentos] [--conservar-ancho] [hojas/arcos.svg ...]
         → actualiza sources/<slug>.sfd solo con los glifos que cambiaron
-          y regenera sus acentuadas (á à â ä ã å…) con el cuerpo nuevo
+          y regenera sus acentuadas (á à â ä ã å…) con el cuerpo nuevo.
+          Conserva los márgenes laterales de cada glifo (el ancho se ajusta);
+          con --conservar-ancho mantiene el ancho de avance.
 
 Cómo se reconoce cada glifo al volver de Affinity:
   - Dos marcas de registro (cuadros negros en las esquinas) calibran la escala
@@ -165,6 +167,17 @@ def exportar(font_path):
         rec = RecordingPen()
         gs[n].draw(rec)
         glyphs[n] = contours_of(rec.value)
+    guias = guias_de(glyphs)
+    HOJAS.mkdir(exist_ok=True)
+    manifest = {"fuente": str(Path(font_path).name), "familias": {}}
+    for familia in FAMILIAS:
+        hashes = escribir_hoja(familia, glyphs, adv, cmap_rev, guias, HOJAS / f"{familia}.svg")
+        manifest["familias"][familia] = hashes
+        print(f"hojas/{familia}.svg: {len(hashes)} glifos")
+    (HOJAS / "manifiesto.json").write_text(json.dumps(manifest, indent=1, ensure_ascii=False), encoding="utf-8")
+
+
+def guias_de(glyphs):
     os_top, os_bot = overshoot(glyphs)
     guias = [("línea base", 0, 1.6), (f"altura de x {C.X_HEIGHT}", C.X_HEIGHT, 1.2),
              (f"mayúsculas {C.CAP_HEIGHT}", C.CAP_HEIGHT, 1.2),
@@ -172,13 +185,16 @@ def exportar(font_path):
     if C.ASCENDER != C.CAP_HEIGHT:
         guias.append((f"ascendentes {C.ASCENDER}", C.ASCENDER, 1.0))
     guias.append((f"descendentes {C.DESCENDER}", C.DESCENDER, 1.0))
-    HOJAS.mkdir(exist_ok=True)
-    manifest = {"fuente": str(Path(font_path).name), "familias": {}}
-    for familia in FAMILIAS:
+    return guias
+
+
+def escribir_hoja(familia, glyphs, adv, cmap_rev, guias, destino, titulo=None):
+    """Escribe una hoja de familia y devuelve la huella de sus glifos editables."""
+    if True:
         cells, W, H = layout(familia, adv)
         (ax, ay), (bx, by) = marks(W, H)
         out = [f'<svg xmlns="{SVG_NS}" width="{W}px" height="{H}px" viewBox="0 0 {W} {H}">',
-               f'<title>{C.FAMILY} · {familia}</title>',
+               f'<title>{C.FAMILY} · {escape(titulo or familia)}</title>',
                f'<rect id="fondo" x="0" y="0" width="{W}" height="{H}" fill="none" stroke="none"/>']
         # guías: solo trazo
         out.append('<g id="guias" fill="none" stroke="%s">' % GUIA)
@@ -228,10 +244,8 @@ def exportar(font_path):
             out.append(f'<g id="{g}"><path d="{to_d(glyphs[g], lambda x, y: (x0 + x, by_ - y))}"/></g>')
             hashes[g] = signature(glyphs[g])
         out.append("</g></svg>")
-        (HOJAS / f"{familia}.svg").write_text("\n".join(out), encoding="utf-8")
-        manifest["familias"][familia] = hashes
-        print(f"hojas/{familia}.svg: {len(hashes)} glifos")
-    (HOJAS / "manifiesto.json").write_text(json.dumps(manifest, indent=1, ensure_ascii=False), encoding="utf-8")
+        Path(destino).write_text("\n".join(out), encoding="utf-8")
+        return hashes
 
 
 def signature(cs):
@@ -335,9 +349,15 @@ def calibrar(shapes, width, height):
     return (lambda x, y: (ax + (x - sax) * s, ay + (y - say) * s)), s, marks_ids
 
 
+def familia_de(path):
+    """Familia de una hoja por su nombre: admite sufijos (01-redondas-iteracion-2.svg)."""
+    stem = Path(path).stem
+    return next((f for f in FAMILIAS if stem == f or stem.startswith(f + "-")), None)
+
+
 def leer_hoja(path, adv):
     """Glifos de una hoja editada: {glifo: contornos en unidades de fuente}."""
-    familia = Path(path).stem
+    familia = familia_de(path)
     cells, W, H = layout(familia, adv)
     shapes = leer_svg(path)
     tf, scale, marks_ids = calibrar(shapes, W, H)
@@ -370,15 +390,21 @@ def base_of(name, font):
     return next((g.glyphname for g in font.glyphs() if g.unicode == b), None)
 
 
-def importar(paths, acentos=True):
+def _ink_center(contours):
+    xs = [b for c in contours for b in (c.boundingBox()[0], c.boundingBox()[2])]
+    return (min(xs) + max(xs)) / 2 if xs else 0
+
+
+def importar(paths, acentos=True, conservar_ancho=False):
     import fontforge
+    import psMat
     font = fontforge.open(str(C.SFD))
     adv = {g.glyphname: g.width for g in font.glyphs()}
     manifest = json.loads((HOJAS / "manifiesto.json").read_text(encoding="utf-8"))
     cambiados = []
     for path in paths:
-        fam = Path(path).stem
-        if fam not in FAMILIAS:
+        fam = familia_de(path)
+        if not fam:
             print(f"omito {path}: no es una hoja de familia")
             continue
         glyphs, scale = leer_hoja(path, adv)
@@ -390,36 +416,55 @@ def importar(paths, acentos=True):
             if same(cs, manifest["familias"].get(fam, {}).get(g)):
                 continue
             glyph = font[g]
-            width = glyph.width
+            width, lsb, rsb = glyph.width, glyph.left_side_bearing, glyph.right_side_bearing
             glyph.clear()
             pen = glyph.glyphPen()
             for ctr in cs:
                 for op, args in ctr:
                     getattr(pen, op)(*args)
             pen = None
-            glyph.width = width
             glyph.removeOverlap()
             glyph.correctDirection()
+            glyph.addExtrema("all")
             glyph.round()
+            if conservar_ancho:
+                glyph.width = width
+            else:                       # mismos márgenes laterales que antes; el ancho se ajusta
+                glyph.left_side_bearing = int(round(lsb))
+                glyph.right_side_bearing = int(round(rsb))
             cambiados.append(g)
-            print(f"  {g}: actualizado")
+            print(f"  {g}: actualizado (ancho {width} → {glyph.width})")
     if acentos and cambiados:
         for g in font.glyphs():
             base = base_of(g.glyphname, font)
             if base not in cambiados:
                 continue
-            ref_top = C.X_HEIGHT if font[base].unicode and chr(font[base].unicode).islower() else C.CAP_HEIGHT
-            marcas = [c for c in g.foreground if c.boundingBox()[1] > ref_top - 10 or c.boundingBox()[3] < 5]
-            if not marcas:
+            b = font[base]
+            ref_top = C.X_HEIGHT if b.unicode and chr(b.unicode).islower() else C.CAP_HEIGHT
+            contornos = list(g.foreground)
+            marcas = [c for c in contornos if c.boundingBox()[1] > ref_top - 10 or c.boundingBox()[3] < 5]
+            cuerpo = [c for c in contornos if c not in marcas]
+            if not marcas and g.glyphname in ("ccedilla", "Ccedilla") and "cedilla" in font:
+                # ç de un solo contorno (como la de Elalba): se rehace con la cedilla suelta
+                marcas = [c.dup() for c in font["cedilla"].foreground]
+                dx = _ink_center(list(b.foreground)) - _ink_center(marcas)
+                cuerpo = []
+            elif not marcas:
                 print(f"  {g.glyphname}: no pude separar el acento; corrígelo a mano")
                 continue
+            else:
+                # recentra el acento sobre el cuerpo nuevo
+                dx = _ink_center(list(b.foreground)) - _ink_center(cuerpo or list(b.foreground))
             layer = fontforge.layer()
-            for c in font[base].foreground:
+            for c in b.foreground:
                 layer += c
             for c in marcas:
+                c = c.dup()
+                c.transform(psMat.translate(dx, 0))
                 layer += c
             g.foreground = layer
-            g.width = font[base].width if g.width == 0 else g.width
+            g.removeOverlap()
+            g.width = b.width
             print(f"  {g.glyphname}: regenerada con el nuevo {base}")
     font.save(str(C.SFD))
     print(f"{len(cambiados)} glifos actualizados en {C.rel(C.SFD)}")
@@ -436,7 +481,8 @@ def main():
     else:
         args = [a for a in sys.argv[2:] if not a.startswith("--")]
         paths = [Path(a) for a in args] or sorted(HOJAS.glob("[0-9][0-9]-*.svg"))
-        importar(paths, acentos="--sin-acentos" not in sys.argv)
+        importar(paths, acentos="--sin-acentos" not in sys.argv,
+                 conservar_ancho="--conservar-ancho" in sys.argv)
 
 
 if __name__ == "__main__":

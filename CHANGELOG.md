@@ -5,6 +5,11 @@ Lo más reciente arriba. Cada fuente recibe estos cambios por un PR de Dependabo
 ## 2026-11-08 — Construir glifos con partes de otros
 
 - `contornos.py`: `recortar` (corte por una recta, con curvas), `recortar_x`, `recortar_y`, `caja`, `estrechar` y `achatar` (quitan una franja sin cambiar grosores), `rotate`, `scale`, `mirror_x`. Sirven en `proyecto/completar.py` para armar cifras y signos con astas, panzas y terminales de las letras de la propia fuente. Sterna los usa en su primera revisión.
+## 2026-11-08 — Hojas: iteraciones e importación en CI
+
+- `11_hojas.py importar` conserva los márgenes laterales (o el ancho con `--conservar-ancho`), recentra los acentos y acepta hojas con sufijo (`01-redondas-iteracion-2.svg`). Viene del PR #8 de Elocaso.
+- `03_limpiar.py`: si FontForge no puede armar una acentuada (**Element › Build › Build Accented Glyph**), la arma como base + acento por referencias, con el acento centrado sobre la tinta; usa ı/ȷ para i/j.
+- Acción `importar` y workflow de plantilla `importar.yml` (ramas `importar/…`).
 
 ## 2026-11-08 — Pipeline común
 
