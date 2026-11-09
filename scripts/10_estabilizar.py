@@ -190,7 +190,8 @@ def snap_glyph(cs, os_top, os_bot):
 def estabilizar(order, cmap, glyphs):
     os_top, os_bot = overshoot(glyphs)
     lines = ["# Altura de x estabilizada", "",
-             f"Altura de x {C.X_HEIGHT}; sobresalto de redondas: +{os_top} arriba, −{os_bot} abajo (medido en la o).", "",
+             f"Altura de x {C.X_HEIGHT}; sobresalto de redondas: +{os_top} arriba, −{os_bot} abajo "
+             f"({'fijado en proyecto.py' if C.OVERSHOOT is not None else 'medido en la o'}).", "",
              "| Glifo | Extremos ajustados |", "| --- | --- |"]
     total = 0
     for g in order:
@@ -298,7 +299,7 @@ def kernear(order, cmap, glyphs, adv):
         head = cmap.get(ord(base))
         if head:
             groups.setdefault(head, set()).add(g)
-    lines = ["# Generado por scripts/10_estabilizar.py: kerning por perfiles, por clases.", ""]
+    lines = ["# Generado por pipeline/scripts/10_estabilizar.py: kerning por perfiles, por clases.", ""]
     used = sorted({n for p in pairs for n in p})
     for name in used:
         members = sorted(m for m in groups.get(name, {name}) if not m.endswith(".case"))
