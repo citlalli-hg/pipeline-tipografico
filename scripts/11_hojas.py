@@ -61,11 +61,37 @@ FAMILIAS = {
     "11-signos": {"glifos": ["period", "comma", "colon", "semicolon", "exclam", "question", "exclamdown",
                              "questiondown", "quoteleft", "quoteright", "quotedblleft", "quotedblright",
                              "hyphen", "endash", "emdash", "parenleft", "parenright", "guillemotleft",
-                             "guillemotright"], "ref": ["n", "H"]},
-    "12-especiales": {"glifos": ["ampersand", "at", "Euro", "dollar", "percent", "numbersign",
+                             "guillemotright", "guilsinglleft", "guilsinglright", "quotesinglbase",
+                             "quotedblbase", "ellipsis"], "ref": ["n", "H"]},
+    "12-especiales": {"glifos": ["ampersand", "at", "Euro", "dollar", "percent", "numbersign", "asterisk", "slash",
                                  "germandbls", "eth", "thorn", "florin", "ae", "oe", "AE", "OE"],
                       "ref": ["n", "H"]},
+    "13-acentos": {"glifos": ["acute", "grave", "circumflex", "tilde", "dieresis", "caron", "ring",
+                              "cedilla", "dotlessj"],
+                   "ref": ["n", "o"]},
 }
+# Al exportar, los glifos con contorno que no estén en ninguna familia (ni sean
+# acentuadas, que se rehacen solas) van a una hoja extra «14-otros»: así toda
+# fuente puede revisar todo su set. La lista queda en hojas/manifiesto.json.
+OTROS = "14-otros"
+
+
+def _cargar_extras(manifest):
+    for fam, spec in manifest.get("familias_extra", {}).items():
+        FAMILIAS[fam] = spec
+
+
+def _otros(glyphs, cmap_rev):
+    en_familia = {g for spec in FAMILIAS.values() for g in spec["glifos"] + spec["ref"]}
+    resto = []
+    for n, cs in glyphs.items():
+        if not cs or n in en_familia or n == ".notdef":
+            continue
+        uni = cmap_rev.get(n)
+        if uni and len(unicodedata.normalize("NFD", chr(uni))) > 1:
+            continue            # acentuada: se regenera con su base
+        resto.append(n)
+    return resto
 POR_FILA = 6
 GAP = 160            # espacio entre celdas (unidades)
 TOP, BOTTOM = 960, -300      # zona vertical de cada celda (el texto va debajo)
@@ -129,6 +155,7 @@ def layout(familia, adv):
     """Celdas de la hoja: lista de (glifo, es_referencia, x0, baseline_y, ancho)."""
     spec = FAMILIAS[familia]
     items = [(g, True) for g in spec["ref"] if g not in spec["glifos"]] + [(g, False) for g in spec["glifos"]]
+    items = [(g, ref) for g, ref in items if g in adv]     # solo los glifos que existen en la fuente
     cells, x, row = [], MARGIN, 0
     for i, (g, ref) in enumerate(items):
         if i and i % POR_FILA == 0:
@@ -169,7 +196,14 @@ def exportar(font_path):
         glyphs[n] = contours_of(rec.value)
     guias = guias_de(glyphs)
     HOJAS.mkdir(exist_ok=True)
-    manifest = {"fuente": str(Path(font_path).name), "familias": {}}
+    manifest = {"fuente": str(Path(font_path).name), "familias": {}, "familias_extra": {}}
+    FAMILIAS.pop(OTROS, None)
+    resto = _otros(glyphs, cmap_rev)
+    if resto:
+        FAMILIAS[OTROS] = {"glifos": resto, "ref": ["n", "H"]}
+        manifest["familias_extra"][OTROS] = FAMILIAS[OTROS]
+    else:
+        (HOJAS / f"{OTROS}.svg").unlink(missing_ok=True)
     for familia in FAMILIAS:
         hashes = escribir_hoja(familia, glyphs, adv, cmap_rev, guias, HOJAS / f"{familia}.svg")
         manifest["familias"][familia] = hashes
@@ -401,6 +435,7 @@ def importar(paths, acentos=True, conservar_ancho=False):
     font = fontforge.open(str(C.SFD))
     adv = {g.glyphname: g.width for g in font.glyphs()}
     manifest = json.loads((HOJAS / "manifiesto.json").read_text(encoding="utf-8"))
+    _cargar_extras(manifest)
     cambiados = []
     for path in paths:
         fam = familia_de(path)
