@@ -1,0 +1,44 @@
+name: Importar hojas al maestro
+description: Importa al maestro las hojas de familia que cambiaron respecto a main, compila, genera pruebas, vuelve a exportar las hojas y sube el resultado a la rama. Requiere checkout con fetch-depth 0.
+inputs:
+  artefacto:
+    description: Nombre del paquete de resultados
+    required: false
+    default: fuente-importada
+runs:
+  using: composite
+  steps:
+    - uses: ./pipeline/.github/actions/preparar
+    - name: Hojas que cambiaron respecto a main
+      id: hojas
+      shell: bash
+      run: |
+        cambios=$(git diff --name-only origin/main...HEAD -- 'hojas/[0-9][0-9]-*.svg' | tr '\n' ' ')
+        echo "lista=$cambios" >> "$GITHUB_OUTPUT"
+        echo "Hojas a importar: $cambios"
+    - name: Importar al maestro
+      if: steps.hojas.outputs.lista != ''
+      shell: bash
+      run: python3 pipeline/scripts/11_hojas.py importar ${{ steps.hojas.outputs.lista }}
+    - name: Compilar, pruebas y exportar hojas actualizadas
+      shell: bash
+      run: |
+        python3 pipeline/scripts/04_build.py
+        python3 pipeline/scripts/05_pruebas.py
+        python3 pipeline/scripts/11_hojas.py exportar
+    - name: Subir el resultado a la rama
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add sources/*.sfd hojas/
+        git commit -m "Hojas importadas al maestro por GitHub Actions" || echo "sin cambios"
+        git pull --rebase origin "${GITHUB_REF_NAME}"
+        git push
+    - name: Publicar resultados
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artefacto }}
+        path: |
+          fonts/
+          proofs/

@@ -1,0 +1,23 @@
+# Importa al maestro las hojas de Affinity que cambiaron en una rama importar/…
+name: Importar hojas al maestro
+
+on:
+  push:
+    branches: ["importar/**"]
+    paths: ["hojas/*.svg"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  importar:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
+      - uses: ./pipeline/.github/actions/importar
+        with:
+          artefacto: ${{ github.event.repository.name }}-importado-${{ github.sha }}
