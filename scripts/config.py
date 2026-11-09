@@ -53,15 +53,23 @@ DESCENDER = -200
 SIDEBEARING = 40            # margen lateral de glifos nuevos o importados
 OVERSHOOT = None            # sobresalto de redondas; None = medirlo en la o
 
+# Estabilizar también mayúsculas y cifras en la altura de mayúsculas (10_estabilizar.py)
+ESTABILIZAR_MAYUSCULAS = False
+OVERSHOOT_MAY = 10          # sobresalto de las redondas de caja alta y cifras
+ZONA_MAY = 20               # cuánto por dentro de la línea se buscan extremos (las contraformas se descartan)
+
 # Etapa "completar": fuente de partida (OTF/TTF) y corrección de línea base.
 FUENTE_BASE = None          # ruta relativa a la raíz del proyecto
 BASELINE_SHIFT = 0
 
 # Limpieza de curvas al completar (pipeline/scripts/curvas.py): puntos en los
 # extremos, asas H/V y armonización G2. None = no se toca nada; "bocetos" = solo
-# los glifos que proyecto/completar.py marca como boceto; o una lista de nombres.
-# No se aplica a glifos dibujados a mano salvo que se nombren aquí.
+# los glifos que proyecto/completar.py marca como boceto; "todo" = toda la fuente
+# (los glifos de partida se limpian ANTES de construir, así las piezas que se
+# toman de ellos ya salen limpias); o una lista de nombres.
+# No se aplica a glifos dibujados a mano salvo que se pida aquí.
 LIMPIAR_CURVAS = None
+LIMPIAR_QUIEBRES = False    # además, alisar quiebres accidentales (< 8°)
 
 # Potrace (02_importar.py): ver pipeline/docs/vectorizacion.md
 POTRACE = {"alphamax": 1.0, "opttolerance": 0.2, "turdsize": 10}

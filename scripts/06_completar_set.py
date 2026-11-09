@@ -133,22 +133,28 @@ def run_hook(f):
     return mod.construir(f)
 
 
-def limpiar_curvas(f):
-    """Puntos en extremos, asas H/V y armonización G2 en los glifos elegidos (config.LIMPIAR_CURVAS)."""
+def limpiar_curvas(f, nombres=None, que="glifos construidos"):
+    """Puntos en extremos, (quiebres,) asas H/V y armonización G2 en los glifos
+    elegidos (config.LIMPIAR_CURVAS, config.LIMPIAR_QUIEBRES)."""
     sel = C.LIMPIAR_CURVAS
     if not sel:
         return
     import curvas as K
-    if sel == "bocetos":
-        nombres = [n for n, _, note in f.new if "boceto" in note]
-    else:
-        nombres = list(sel)
-    total = 0
+    if nombres is None:
+        if sel == "bocetos":
+            nombres = [n for n, _, note in f.new if "boceto" in note]
+        elif sel == "todo":
+            nombres = [n for n, _, _ in f.new]
+        else:
+            nombres = list(sel)
+    total, hechos = 0, 0
     for n in dict.fromkeys(nombres):
         if f.glyphs.get(n):
-            f.glyphs[n], movidos = K.limpiar(f.glyphs[n])
+            f.glyphs[n], movidos = K.limpiar(f.glyphs[n], quiebres=C.LIMPIAR_QUIEBRES)
             total += movidos
-    f.notas.append(f"Curvas limpiadas (extremos, asas H/V, G2) en {len(set(nombres))} glifos: {total} nodos ajustados.")
+            hechos += 1
+    f.notas.append(f"Curvas limpiadas en {hechos} {que} (extremos, "
+                   f"{'quiebres, ' if C.LIMPIAR_QUIEBRES else ''}asas H/V, G2): {total} nodos ajustados.")
 
 
 def save(f, features):
@@ -210,6 +216,8 @@ def main():
     if not C.FUENTE_BASE:
         sys.exit("proyecto.py no define FUENTE_BASE: esta etapa necesita una fuente de partida.")
     f = Draft(ROOT / C.FUENTE_BASE, C.BASELINE_SHIFT)
+    if C.LIMPIAR_CURVAS == "todo":
+        limpiar_curvas(f, list(f.glyphs), "glifos de partida")
     features = run_hook(f) or FEATURES_MINIMAS
     limpiar_curvas(f)
     spaced = respace(f) if C.ESPACIADO else 0

@@ -131,34 +131,57 @@ def _runs(samples, inside):
     return runs
 
 
-def snap_glyph(cs, os_top, os_bot):
+def snap_glyph(cs, os_top, os_bot, alto=None, zona=30):
     """Lleva cada extremo de la zona de x y de la línea base a su altura:
     planos a XH y 0, redondos con el sobresalto de la o. Los puntos de la
     zona se desplazan con una transición suave para no deformar la curva."""
-    XH, RAMP = C.X_HEIGHT, 90
+    XH, RAMP = (alto or C.X_HEIGHT), 90
     out, moved = [], 0
-    for ctr in cs:
+    polis = [[(s_[0], s_[1]) for s_ in _samples(c_)] for c_ in cs] if zona < 30 else []
+
+    def _dentro(pts, x, y):
+        c = False
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:] + pts[:1]):
+            if (y0 > y) != (y1 > y) and x < x0 + (y - y0) * (x1 - x0) / (y1 - y0):
+                c = not c
+        return c
+
+    def es_contraforma(ci, x, y, arriba):
+        """¿El punto justo por fuera de este extremo tiene tinta (de este u otro
+        contorno)? Entonces es el borde interior de un filete (la barra de una E,
+        la contraforma de una O o una B), no el borde exterior de la letra."""
+        yy = y + 3 if arriba else y - 3
+        return any(len(p) > 2 and _dentro(p, x, yy) for p in polis)
+
+    for ci, ctr in enumerate(cs):
         smp = _samples(ctr)
         if not smp:
             out.append(ctr)
             continue
         fixes = []          # (zona, xmin, xmax, dy)
-        for zone, inside in (("top", lambda y: XH - 30 <= y <= XH + BAND),
-                             ("bot", lambda y: -BAND <= y <= 30)):
+        # zona: cuánto por dentro de la línea se buscan extremos. Debe ser menor
+        # que el filete, o el borde de una contraforma (el interior de la barra
+        # de una B) se confundiría con el borde exterior.
+        for zone, inside in (("top", lambda y: XH - zona <= y <= XH + BAND),
+                             ("bot", lambda y: -BAND <= y <= zona)):
             for run in _runs(smp, inside):
                 ys = [s[1] for s in run]
                 ext = max(ys) if zone == "top" else min(ys)
                 # un extremo real entra y sale de la zona por el lado interior;
                 # un trazo que solo cruza la zona no es extremo
-                if zone == "top" and (run[0][1] > XH - 20 or run[-1][1] > XH - 20) and len(run) < len(smp):
+                if zone == "top" and ((run[0][1] > XH - zona * 2 / 3 or run[-1][1] > XH - zona * 2 / 3) if zona >= 30 else (run[0][1] > XH + BAND - 3 or run[-1][1] > XH + BAND - 3)) and len(run) < len(smp):
                     if not any(s[2] == "flat" for s in run):
                         continue
-                if zone == "bot" and (run[0][1] < 20 or run[-1][1] < 20) and len(run) < len(smp):
+                if zone == "bot" and ((run[0][1] < zona * 2 / 3 or run[-1][1] < zona * 2 / 3) if zona >= 30 else (run[0][1] < -BAND + 3 or run[-1][1] < -BAND + 3)) and len(run) < len(smp):
                     if not any(s[2] == "flat" for s in run):
                         continue
                 # el extremo debe ser un máximo/mínimo local de verdad (no un corte que cruza la zona)
                 if zone == "top" and ext < XH - BAND or zone == "bot" and ext > BAND:
                     continue
+                if zona < 30:
+                    xe = next(s[0] for s in run if s[1] == ext)
+                    if es_contraforma(ci, xe, ext, zone == "top"):
+                        continue
                 flat = any(s[2] == "flat" and abs(s[1] - ext) < 2 for s in run)
                 target = (XH if flat else XH + os_top) if zone == "top" else (0 if flat else -os_bot)
                 dy = target - ext
@@ -182,9 +205,72 @@ def snap_glyph(cs, os_top, os_bot):
                     return (x, y + dy * w)
             return (x, y)
 
-        out.append([(op, tuple(shift(p) for p in args)) for op, args in ctr])
+        if zona >= 30:
+            # comportamiento original (altura de x): cada punto por su cuenta
+            out.append([(op, tuple(shift(p) for p in args)) for op, args in ctr])
+        else:
+            # zona estrecha (mayúsculas): las asas acompañan a su nodo, para que
+            # el extremo siga siendo plano (asas horizontales) al subir o bajar
+            new, prev_on, prev_d = [], None, (0, 0)
+            for op, args in ctr:
+                if op == "curveTo":
+                    c1, c2, p3 = args
+                    q3 = shift(p3)
+                    d3 = (q3[0] - p3[0], q3[1] - p3[1])
+                    q1 = (c1[0] + prev_d[0], c1[1] + prev_d[1]) if prev_d != (0, 0) else shift(c1)
+                    q2 = (c2[0] + d3[0], c2[1] + d3[1]) if d3 != (0, 0) else shift(c2)
+                    new.append((op, (q1, q2, q3)))
+                    prev_d = d3
+                elif op in ("moveTo", "lineTo"):
+                    q = shift(args[0])
+                    prev_d = (q[0] - args[0][0], q[1] - args[0][1])
+                    new.append((op, (q,)))
+                else:
+                    new.append((op, args))
+            # el primer nodo también arrastra la asa de entrada del último segmento
+            if new and new[0][0] == "moveTo":
+                d0 = (new[0][1][0][0] - ctr[0][1][0][0], new[0][1][0][1] - ctr[0][1][0][1])
+                for k in range(len(new) - 1, 0, -1):
+                    if new[k][0] == "curveTo":
+                        c1, c2, p3 = new[k][1]
+                        if d0 != (0, 0) and math.dist(p3, new[0][1][0]) < 1e-6:
+                            o2 = ctr[k][1][1]
+                            new[k] = ("curveTo", (c1, (o2[0] + d0[0], o2[1] + d0[1]), p3))
+                        break
+            out.append(new)
         moved += len(fixes)
     return out, moved
+
+
+def es_alta(name, cmap):
+    """Mayúsculas y cifras: su zona alta es la altura de mayúsculas."""
+    uni = next((u for u, n in cmap.items() if n == name.split(".")[0]), None)
+    if not uni:
+        return False
+    base = unicodedata.normalize("NFD", chr(uni))[0]
+    return (base.isalpha() and base.isupper()) or base.isdigit()
+
+
+def estabilizar_altas(order, cmap, glyphs):
+    """Lo mismo que la altura de x, para mayúsculas y cifras con la altura de
+    mayúsculas (config.ESTABILIZAR_MAYUSCULAS). Las redondas sobresalen
+    config.OVERSHOOT_MAY (Cheng, *Designing Type*: 1–3 % de la altura)."""
+    if not C.ESTABILIZAR_MAYUSCULAS:
+        return 0, []
+    os_ = C.OVERSHOOT_MAY
+    lines = ["", f"## Mayúsculas y cifras", "",
+             f"Altura de mayúsculas {C.CAP_HEIGHT}; sobresalto de redondas ±{os_}.", "",
+             "| Glifo | Extremos ajustados |", "| --- | --- |"]
+    total = 0
+    for g in order:
+        if not es_alta(g, cmap):
+            continue
+        new, moved = snap_glyph(glyphs[g], os_, os_, alto=C.CAP_HEIGHT, zona=C.ZONA_MAY)
+        if moved:
+            glyphs[g] = new
+            total += moved
+            lines.append(f"| `{g}` | {moved} |")
+    return total, lines
 
 
 def estabilizar(order, cmap, glyphs):
@@ -348,6 +434,9 @@ def main():
     out_path = Path(sys.argv[2]) if len(sys.argv) > 2 else OUT
     src, order, cmap, glyphs, adv = load(src_path)
     total, lines = estabilizar(order, cmap, glyphs)
+    t2, l2 = estabilizar_altas(order, cmap, glyphs)
+    total += t2
+    lines += l2
     pairs = kernear(order, cmap, glyphs, adv)
     save(src, order, cmap, glyphs, adv, out_path)
     lines += ["", f"Kerning: {len(pairs)} pares por clases en `sources/kern.fea`."]

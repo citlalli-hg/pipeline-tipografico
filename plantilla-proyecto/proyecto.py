@@ -29,7 +29,11 @@ DRAWN = None
 
 # --- Curvas (opcional) ----------------------------------------------------------------
 # Puntos en extremos, asas H/V y armonización G2 al completar: None, "bocetos" o lista de glifos.
-LIMPIAR_CURVAS = None
+LIMPIAR_CURVAS = None       # None, "bocetos", "todo" o lista de glifos
+LIMPIAR_QUIEBRES = False    # además, alisar quiebres accidentales (< 8°)
+# Mayúsculas y cifras planas en la altura de mayúsculas y redondas con sobresalto
+ESTABILIZAR_MAYUSCULAS = False
+OVERSHOOT_MAY = 10
 # Potrace para glifos escaneados (ver pipeline/docs/vectorizacion.md)
 # POTRACE = {"alphamax": 1.0, "opttolerance": 0.2, "turdsize": 10}
 

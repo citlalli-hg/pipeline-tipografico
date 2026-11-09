@@ -67,6 +67,10 @@ run = "python pipeline/scripts/ff.py 03_limpiar.py"
 description = "Etapa 9: genera OTF, TTF y WOFF2"
 run = "python pipeline/scripts/ff.py 04_build.py"
 
+[control]
+description = "Control de calidad: contornos cerrados y SVG de las hojas válidos (proofs/control.md)"
+run = "python pipeline/scripts/13_control.py"
+
 [curvas]
 description = "Revisión de curvas: reporte y peines de curvatura por familia (proofs/curvatura/)"
 run = "python pipeline/scripts/12_curvas.py"

@@ -239,14 +239,59 @@ def enderezar_asas(cs, max_ang=6.0):
     return out, n_
 
 
-def limpiar(cs, asas=True):
-    """Para glifos construidos o trazados por máquina: puntos en los extremos,
-    asas H/V (opcional) y armonización G2, en ese orden (la armonización al
-    final para que el nodo quede en el punto de curvatura continua)."""
+def alisar_quiebres(cs, max_ang=8.0):
+    """Quiebres accidentales (tangentes que difieren entre ANG_LISO y `max_ang`
+    grados) se vuelven nodos lisos: con dos curvas, las asas toman la bisectriz;
+    con una recta, la curva se alinea con la recta. Las esquinas reales (más de
+    `max_ang`) y las uniones entre rectas no se tocan. Es **Point › Curve**."""
+    out, n_ = [], 0
+    for ctr in cs:
+        segs = [list(s) for s in a_segmentos(ctr)]
+        n = len(segs)
+        for i in range(n):
+            a, b = segs[i], segs[(i + 1) % n]
+            ta, tb = tangente_llegada(a), tangente_salida(b)
+            if ta is None or tb is None:
+                continue
+            dang = _diff(_ang(ta), _ang(tb))
+            if not (ANG_LISO <= dang < max_ang):
+                continue
+            p = a[-1]
+            if len(a) == 4 and len(b) == 4:
+                ua = (ta[0] / math.hypot(*ta), ta[1] / math.hypot(*ta))
+                ub = (tb[0] / math.hypot(*tb), tb[1] / math.hypot(*tb))
+                u = (ua[0] + ub[0], ua[1] + ub[1])
+            elif len(a) == 2 and len(b) == 4:
+                u = ta
+            elif len(a) == 4 and len(b) == 2:
+                u = tb
+            else:
+                continue
+            nu = math.hypot(*u)
+            u = (u[0] / nu, u[1] / nu)
+            if len(a) == 4:
+                la = math.dist(a[2], p)
+                a[2] = (p[0] - u[0] * la, p[1] - u[1] * la)
+            if len(b) == 4:
+                lb = math.dist(b[1], p)
+                b[1] = (p[0] + u[0] * lb, p[1] + u[1] * lb)
+            n_ += 1
+        out.append(a_contorno(segs))
+    return out, n_
+
+
+def limpiar(cs, asas=True, quiebres=False):
+    """Puntos en los extremos, quiebres accidentales alisados (opcional), asas
+    H/V (opcional) y armonización G2, en ese orden (la armonización al final
+    para que el nodo quede en el punto de curvatura continua)."""
     cs = agregar_extremos(cs)
     n = 0
+    if quiebres:
+        cs, k = alisar_quiebres(cs)
+        n += k
     if asas:
-        cs, n = enderezar_asas(cs)
+        cs, k = enderezar_asas(cs)
+        n += k
     cs, m = armonizar(cs)
     return cs, n + m
 

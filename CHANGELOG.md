@@ -2,6 +2,15 @@
 
 Lo más reciente arriba. Cada fuente recibe estos cambios por un PR de Dependabot.
 
+## 2026-11-08 — Armonizar toda la fuente y control de calidad
+
+- `LIMPIAR_CURVAS = "todo"`: limpia los glifos de partida antes de construir el resto, y luego lo construido.
+- `LIMPIAR_QUIEBRES`: `curvas.alisar_quiebres()` vuelve lisos los quiebres accidentales (< 8°), como **Point › Curve**.
+- `ESTABILIZAR_MAYUSCULAS`, `OVERSHOOT_MAY`, `ZONA_MAY`: mayúsculas y cifras planas en la altura de mayúsculas y redondas con sobresalto; las asas acompañan a su nodo y los bordes interiores de filetes y contraformas (barra de la E, interior de O, B, Q) no se tocan. La altura de x no cambia de comportamiento.
+- `scripts/13_control.py` (`mise run control`): contornos cerrados, sin degenerados ni puntos repetidos, dirección; SVG de `hojas/` y `glyphs-svg/` válidos, cerrados (Z), sin imágenes, con marcas de registro y todos sus glifos. En CI corre con `--estricto` y detiene el build si algo está abierto o roto.
+- `03_limpiar.py`: el reporte de FontForge (contornos abiertos, autointersecciones, dirección, extremos) cubre todos los glifos.
+- Verificado: la salida de Elocaso no cambia.
+
 ## 2026-11-08 — Calidad de curvas y vectorización
 
 - `scripts/curvas.py`: diagnóstico (extremo sin nodo, quiebre, asa casi H/V, salto de curvatura G2), puntos en extremos, asas H/V y armonización G2 (algoritmo de Simon Cozens).
