@@ -1,0 +1,19 @@
+# Regenera las hojas de Affinity desde el maestro y comprueba la importación.
+name: Hojas de familia
+
+on:
+  push:
+    branches: ["hojas/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  hojas:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: ./pipeline/.github/actions/hojas

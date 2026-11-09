@@ -1,0 +1,9 @@
+opencv-python-headless>=4.8
+numpy>=1.24
+pillow>=10
+fonttools[woff]>=4.50
+drawbot-skia>=0.5
+fontbakery>=0.12
+glyphtools>=0.8
+# Para la fuente variable (cuando haya dos masters):
+# fontmake>=3.8

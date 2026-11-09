@@ -1,0 +1,11 @@
+name: Preparar entorno del pipeline
+description: Instala FontForge, Potrace, ttfautohint y las dependencias de Python del pipeline común.
+runs:
+  using: composite
+  steps:
+    - name: Instalar FontForge, Potrace y ttfautohint
+      shell: bash
+      run: sudo apt-get update -qq && sudo apt-get install -y -qq fontforge python3-fontforge potrace ttfautohint
+    - name: Instalar dependencias de Python
+      shell: bash
+      run: python3 -m pip install --break-system-packages -q -r pipeline/requirements.txt

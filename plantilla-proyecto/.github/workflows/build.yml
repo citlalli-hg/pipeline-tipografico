@@ -1,0 +1,20 @@
+# Compila la fuente, corre Font Bakery y genera el PDF de pruebas.
+# La lógica vive en el pipeline común: pipeline/.github/actions/build
+name: Build y QA
+
+on:
+  push:
+    paths: ["sources/**", "proyecto.py", "proyecto/**", "pipeline", ".github/workflows/**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: ./pipeline/.github/actions/build
+        with:
+          artefacto: ${{ github.event.repository.name }}-${{ github.sha }}

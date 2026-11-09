@@ -1,0 +1,39 @@
+name: Build y QA
+description: Compila el maestro del proyecto, corre Font Bakery y genera el PDF de pruebas. Omite todo si aún no hay maestro.
+inputs:
+  artefacto:
+    description: Nombre del paquete de resultados que se publica en Actions
+    required: false
+    default: fuente
+runs:
+  using: composite
+  steps:
+    - name: Verificar maestro
+      id: maestro
+      shell: bash
+      run: |
+        sfd=$(python3 -c "import sys; sys.path.insert(0,'pipeline/scripts'); import config as C; print(C.rel(C.SFD))")
+        if [ -f "$sfd" ]; then echo "existe=true" >> "$GITHUB_OUTPUT";
+        else echo "Aún no hay $sfd; se omite el build."; fi
+    - uses: ./pipeline/.github/actions/preparar
+      if: steps.maestro.outputs.existe == 'true'
+    - name: Generar fuentes
+      if: steps.maestro.outputs.existe == 'true'
+      shell: bash
+      run: python3 pipeline/scripts/04_build.py
+    - name: Font Bakery (informativo)
+      if: steps.maestro.outputs.existe == 'true'
+      shell: bash
+      run: python3 pipeline/scripts/qa.py || echo "Font Bakery reportó problemas (ver proofs/fontbakery.md)"
+    - name: PDF de pruebas
+      if: steps.maestro.outputs.existe == 'true'
+      shell: bash
+      run: python3 pipeline/scripts/05_pruebas.py
+    - name: Publicar resultados
+      if: steps.maestro.outputs.existe == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artefacto }}
+        path: |
+          fonts/
+          proofs/

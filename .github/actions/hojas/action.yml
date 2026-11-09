@@ -1,0 +1,31 @@
+name: Hojas de familia
+description: Exporta las hojas de Affinity desde el maestro, prueba la importación con una edición simulada y sube las hojas a la rama.
+runs:
+  using: composite
+  steps:
+    - uses: ./pipeline/.github/actions/preparar
+    - name: Compilar el maestro
+      shell: bash
+      run: python3 pipeline/scripts/04_build.py
+    - name: Exportar hojas
+      shell: bash
+      run: python3 pipeline/scripts/11_hojas.py exportar
+    - name: Probar la importación con una edición simulada
+      shell: bash
+      run: |
+        sfd=$(python3 -c "import sys; sys.path.insert(0,'pipeline/scripts'); import config as C; print(C.rel(C.SFD))")
+        mkdir -p /tmp/prueba && cp hojas/02-arcos.svg /tmp/prueba/
+        sed -i 's|<g id="n"><path|<g id="n" transform="translate(0 -30)"><path|' /tmp/prueba/02-arcos.svg
+        python3 pipeline/scripts/11_hojas.py importar --sin-acentos /tmp/prueba/02-arcos.svg | tee /tmp/prueba/salida.txt
+        grep -q "n: actualizado" /tmp/prueba/salida.txt
+        test "$(grep -c ': actualizado' /tmp/prueba/salida.txt)" = "1"
+        git checkout "$sfd"
+    - name: Subir las hojas a la rama
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add hojas/
+        git commit -m "Hojas de familia exportadas desde el maestro" || echo "sin cambios"
+        git pull --rebase origin "${GITHUB_REF_NAME}"
+        git push

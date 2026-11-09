@@ -1,0 +1,13 @@
+# Abre un pull request cuando el pipeline común tiene cambios nuevos.
+# El PR corre el build: si pasa, se puede fusionar.
+version: 2
+updates:
+  - package-ecosystem: gitsubmodule
+    directory: "/"
+    schedule:
+      interval: daily
+      time: "07:00"
+      timezone: America/Mexico_City
+    commit-message:
+      prefix: "Pipeline"
+    labels: ["pipeline"]

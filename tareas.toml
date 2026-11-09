@@ -1,0 +1,76 @@
+# Tareas del pipeline, compartidas por todos los proyectos tipográficos.
+# Cada proyecto las incluye desde su mise.toml:
+#     [task_config]
+#     includes = ["pipeline/tareas.toml"]
+# Se ejecutan desde la raíz del proyecto (la carpeta con proyecto.py):
+#     mise run <tarea>      ·      mise tasks   (lista)
+
+[setup]
+description = "Instala dependencias de Python (y fontTools para el Python de FontForge)"
+run = [
+  "python -m pip install --upgrade pip",
+  "python -m pip install -r pipeline/requirements.txt",
+  "python -m pip install --upgrade --target .ffdeps fonttools",
+]
+
+[doctor]
+description = "Verifica que todas las herramientas estén instaladas"
+run = "python pipeline/scripts/doctor.py"
+
+[actualizar-pipeline]
+description = "Trae la última versión del pipeline común (luego: commit + PR)"
+run = [
+  "git submodule update --init --remote pipeline",
+  "git status --short pipeline",
+]
+
+[plantilla]
+description = "Etapa 1: genera las hojas de dibujo en template/"
+run = "python pipeline/scripts/00_plantilla.py"
+
+[digitalizar]
+description = "Etapa 2: endereza los escaneos de scans/ y recorta un glifo por celda"
+run = "python pipeline/scripts/01_digitalizar.py"
+
+[completar]
+description = "Base desde la fuente de partida + construcciones de proyecto/completar.py → sources/<slug>-base.otf"
+run = "python pipeline/scripts/06_completar_set.py"
+
+[maestro]
+description = "Convierte <slug>-base.otf en el maestro sources/<slug>.sfd (no reemplaza uno existente)"
+run = "python pipeline/scripts/ff.py 07_a_sfd.py"
+
+[estabilizar]
+description = "Altura de x estable y kerning sobre la base (sin cambiar la forma de los glifos)"
+run = [
+  "python pipeline/scripts/10_estabilizar.py",
+  "python pipeline/scripts/ff.py 07_a_sfd.py --estable --forzar",
+]
+
+[hojas]
+description = "Exporta las hojas de familia (SVG) para corregir glifos en Affinity"
+run = ["python pipeline/scripts/ff.py 04_build.py", "python pipeline/scripts/11_hojas.py exportar"]
+
+[importar-hojas]
+description = "Importa al maestro los glifos corregidos en las hojas de Affinity"
+run = "python pipeline/scripts/ff.py 11_hojas.py importar"
+
+[importar]
+description = "Etapas 3 y 5: traza con Potrace e importa al maestro de FontForge"
+run = "python pipeline/scripts/ff.py 02_importar.py"
+
+[limpiar]
+description = "Etapas 4 y 6: limpieza técnica, acentos como componentes y reporte"
+run = "python pipeline/scripts/ff.py 03_limpiar.py"
+
+[build]
+description = "Etapa 9: genera OTF, TTF y WOFF2"
+run = "python pipeline/scripts/ff.py 04_build.py"
+
+[pruebas]
+description = "Etapa 9: PDF de pruebas de lectura"
+run = "python pipeline/scripts/05_pruebas.py"
+
+[qa]
+description = "Etapa 9: revisión técnica con Font Bakery"
+run = "python pipeline/scripts/qa.py"

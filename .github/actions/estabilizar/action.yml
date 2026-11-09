@@ -1,0 +1,32 @@
+name: Completar, estabilizar y generar el maestro
+description: Corre las etapas completar (opcional), estabilizar y maestro, y sube el resultado a la rama actual.
+inputs:
+  completar:
+    description: "true para regenerar antes la base desde la fuente de partida (06_completar_set.py)"
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - uses: ./pipeline/.github/actions/preparar
+    - name: Completar el set
+      if: inputs.completar == 'true'
+      shell: bash
+      run: python3 pipeline/scripts/06_completar_set.py
+    - name: Altura de x y kerning
+      shell: bash
+      run: python3 pipeline/scripts/10_estabilizar.py
+    - name: Maestro de FontForge y acentuadas como componentes
+      shell: bash
+      run: |
+        python3 pipeline/scripts/07_a_sfd.py --estable --forzar
+        python3 pipeline/scripts/03_limpiar.py --sin-limpiar
+    - name: Subir el resultado a la rama
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add sources/
+        git commit -m "Pipeline: base, altura de x, kerning y maestro (GitHub Actions)" || echo "sin cambios"
+        git pull --rebase origin "${GITHUB_REF_NAME}"
+        git push

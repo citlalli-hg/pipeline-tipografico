@@ -1,0 +1,12 @@
+# Entorno del proyecto. Las tareas vienen del pipeline común (pipeline/tareas.toml).
+# Uso:  mise install  →  mise run setup  →  mise run doctor  ·  `mise tasks` lista todo
+
+[tools]
+python = "3.12"
+
+[env]
+# Entorno virtual del proyecto: se crea y se activa solo al entrar a la carpeta
+_.python.venv = { path = ".venv", create = true }
+
+[task_config]
+includes = ["pipeline/tareas.toml"]

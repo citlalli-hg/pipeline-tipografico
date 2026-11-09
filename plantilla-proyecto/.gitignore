@@ -1,0 +1,19 @@
+# Generados por el pipeline
+glyphs-png/*
+!glyphs-png/.gitkeep
+fonts/*
+!fonts/.gitkeep
+proofs/*
+!proofs/.gitkeep
+
+# Respaldos de FontForge
+*.sfd~
+*.bak
+
+# Python y sistema
+__pycache__/
+*.pyc
+.venv/
+.ffdeps/
+.DS_Store
+Thumbs.db

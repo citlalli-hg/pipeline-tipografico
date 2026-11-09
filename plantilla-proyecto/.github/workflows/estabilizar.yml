@@ -1,0 +1,30 @@
+# Base, altura de x, kerning y maestro de FontForge; sube el resultado a la rama.
+# Se corre a mano (Actions › Estabilizar › Run workflow) o con push a una rama estabilizar/…
+name: Estabilizar
+
+on:
+  push:
+    branches: ["estabilizar/**"]
+  workflow_dispatch:
+    inputs:
+      completar:
+        description: "Regenerar antes la base desde la fuente de partida (mise run completar)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  estabilizar:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: ./pipeline/.github/actions/estabilizar
+        with:
+          completar: ${{ github.event_name == 'push' || inputs.completar }}
+      - uses: ./pipeline/.github/actions/build
+        with:
+          artefacto: ${{ github.event.repository.name }}-estable-${{ github.sha }}
