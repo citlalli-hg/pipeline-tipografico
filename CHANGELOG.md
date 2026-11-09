@@ -2,6 +2,11 @@
 
 Lo más reciente arriba. Cada fuente recibe estos cambios por un PR de Dependabot.
 
+## 2026-11-08 — Hojas: iteraciones e importación en CI
+
+- `11_hojas.py importar` conserva los márgenes laterales (o el ancho con `--conservar-ancho`), recentra los acentos y acepta hojas con sufijo (`01-redondas-iteracion-2.svg`). Viene del PR #8 de Elocaso.
+- Acción `importar` y workflow de plantilla `importar.yml` (ramas `importar/…`).
+
 ## 2026-11-08 — Pipeline común
 
 - El pipeline sale de Elocaso y se vuelve compartido: submódulo `pipeline/` en cada fuente.

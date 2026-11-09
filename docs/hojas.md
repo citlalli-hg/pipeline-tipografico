@@ -40,7 +40,9 @@ Cada celda tiene las guías de línea base, altura de x, sobresaltos de las redo
    ```
    - Solo se reemplazan los glifos que cambiaron; el resto del maestro no se toca.
    - Las acentuadas (á à â ä ã å, ñ, é…) se regeneran con el cuerpo nuevo de su letra base. Para no hacerlo: `python pipeline/scripts/ff.py 11_hojas.py importar --sin-acentos`.
-   - El ancho de avance se conserva; el espaciado se ajusta después en FontForge.
+   - Se conservan los márgenes laterales de cada glifo y el ancho de avance se ajusta. Para mantener el ancho: `python pipeline/scripts/ff.py 11_hojas.py importar --conservar-ancho`.
+   - Puedes guardar iteraciones con sufijo (`01-redondas-iteracion-2.svg`): se reconocen como su familia.
+   - En GitHub: sube la hoja a una rama `importar/…` y Actions la importa, compila y devuelve el maestro a la rama.
 6. **Revisar y subir**:
    ```
    mise run build
