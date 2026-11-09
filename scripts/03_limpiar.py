@@ -92,7 +92,8 @@ def build_composites(font):
 
 def report(font):
     lines = ["# Reporte de limpieza", "", "| Glifo | Problemas |", "| --- | --- |"]
-    for name in C.DRAWN:
+    nombres = list(dict.fromkeys(list(C.DRAWN) + [g.glyphname for g in font.glyphs()]))
+    for name in nombres:
         if name not in font:
             lines.append(f"| {name} | no existe |")
             continue
