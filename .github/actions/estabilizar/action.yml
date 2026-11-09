@@ -24,6 +24,7 @@ runs:
           echo "::error::$sfd tiene commits hechos a mano ($manos): estabilizar lo reemplazaría y se perderían las correcciones. Usa las hojas (rama importar/…) o corre este workflow con forzar."
           exit 1
         fi
+    - name: Completar el set
       if: inputs.completar == 'true'
       shell: bash
       run: python3 pipeline/scripts/06_completar_set.py
