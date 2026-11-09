@@ -2,6 +2,11 @@
 
 Lo más reciente arriba. Cada fuente recibe estos cambios por un PR de Dependabot.
 
+## 2026-11-08 — Set semilla
+
+- `docs/set-semilla.md`: los 68 glifos que conviene dibujar desde el inicio (controles, minúsculas y mayúsculas por familia, 16 no letras) y qué genera el pipeline con cada uno.
+- `config.SEMILLA` y `DRAWN = "semilla"` en `proyecto.py`: la plantilla de dibujo sale con ese set y en ese orden. Por defecto (`DRAWN = None`) nada cambia; la plantilla de proyectos nuevos ya usa "semilla".
+
 ## 2026-11-08 — Armonizar toda la fuente y control de calidad
 
 - `LIMPIAR_CURVAS = "todo"`: limpia los glifos de partida antes de construir el resto, y luego lo construido.
