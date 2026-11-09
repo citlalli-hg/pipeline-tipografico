@@ -29,7 +29,7 @@ Cómo se comparten el pipeline y sus actualizaciones: [docs/proyectos.md](docs/p
 | 8 OpenType | `sources/features.fea` | FontForge | — |
 | 9 Build y QA | OTF, TTF, WOFF2, Font Bakery y PDF de pruebas | FontForge, fontTools, drawbot-skia | `build`, `qa`, `pruebas` |
 
-Metodología y bibliografía: [docs/pipeline.md](docs/pipeline.md). Vectorización y calidad de curvas: [docs/vectorizacion.md](docs/vectorizacion.md). Hojas de Affinity: [docs/hojas.md](docs/hojas.md).
+Metodología y bibliografía: [docs/pipeline.md](docs/pipeline.md). Qué dibujar primero: [docs/set-semilla.md](docs/set-semilla.md). Vectorización y calidad de curvas: [docs/vectorizacion.md](docs/vectorizacion.md). Hojas de Affinity: [docs/hojas.md](docs/hojas.md).
 
 ## Estructura
 

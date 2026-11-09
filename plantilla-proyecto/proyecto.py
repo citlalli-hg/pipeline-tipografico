@@ -24,8 +24,9 @@ FUENTE_BASE = None          # p. ej. "sources/originales/MiFuente.otf"
 BASELINE_SHIFT = 0
 
 # --- Set de caracteres -------------------------------------------------------------------
-# DRAWN: glifos que se dibujan a mano (plantilla). None = núcleo completo (A–Z, a–z, cifras, signos, acentos).
-DRAWN = None
+# DRAWN: glifos que se dibujan a mano (plantilla). "semilla" = el set mínimo de
+# pipeline/docs/set-semilla.md (68 glifos, en orden de dibujo); None = núcleo completo.
+DRAWN = "semilla"
 
 # --- Curvas (opcional) ----------------------------------------------------------------
 # Puntos en extremos, asas H/V y armonización G2 al completar: None, "bocetos" o lista de glifos.

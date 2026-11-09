@@ -107,7 +107,24 @@ PUNCT = [
     "slash", "asterisk",
 ]
 MARKS = ["acute", "grave", "dieresis", "tilde", "circumflex"]
-DRAWN = None                # glifos que se dibujan a mano; None = todo el núcleo
+DRAWN = None                # glifos que se dibujan a mano; None = todo el núcleo; "semilla" = SEMILLA
+
+# Set semilla (docs/set-semilla.md): lo mínimo que hay que dibujar para que el
+# pipeline genere una fuente completa, en el orden en que conviene dibujarlo.
+SEMILLA = (
+    # 1. Controles: fijan asta, filete, panza, remate y sobresalto
+    ["n", "o", "H", "O"]
+    # 2. Minúsculas por familia (cada una aporta una pieza que se reutiliza)
+    + ["h", "m", "u", "r", "b", "d", "p", "q", "c", "e", "a", "s", "g",
+       "i", "l", "j", "f", "t", "v", "w", "x", "y", "k", "z"]
+    # 3. Mayúsculas por familia
+    + ["I", "L", "E", "F", "T", "D", "C", "G", "Q", "B", "P", "R", "S", "U", "J",
+       "A", "V", "W", "X", "Y", "K", "M", "N", "Z"]
+    # 4. No letras que no salen bien por construcción
+    + ["period", "comma", "question", "exclam", "parenleft", "hyphen",
+       "acute", "tilde", "cedilla",
+       "one", "two", "three", "four", "six", "seven", "ampersand"]
+)
 
 COMPOSITES = [
     0x00E1, 0x00E9, 0x00ED, 0x00F3, 0x00FA, 0x00FC, 0x00F1,  # á é í ó ú ü ñ
@@ -146,6 +163,8 @@ SLUG = SLUG or FAMILY.lower()
 COPYRIGHT = COPYRIGHT or f"Copyright (c) 2026, {DESIGNER}."
 if DRAWN is None:
     DRAWN = UPPER + LOWER + DIGITS + PUNCT + MARKS
+elif DRAWN == "semilla":
+    DRAWN = list(SEMILLA)
 
 SOURCES = ROOT / "sources"
 SFD = SOURCES / f"{SLUG}.sfd"                  # maestro de FontForge: fuente de verdad

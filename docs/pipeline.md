@@ -4,7 +4,7 @@ Resumen del proceso. La versión completa, con metodología y bibliografía, est
 
 ## Etapas
 
-0. **Definir** — brief, referentes, modelo de trazo (traslación, expansión, rotación), set de caracteres y métricas. → `brief/brief.md`
+0. **Definir** — brief, referentes, modelo de trazo (traslación, expansión, rotación), set de caracteres y métricas. → `brief/brief.md`. Qué dibujar para que el pipeline genere la fuente completa: [set-semilla.md](set-semilla.md).
 1. **Dibujar** — glifos de control (n, o, H, O), luego palabras de prueba (*adhesion*, *hamburgefonstiv*, *ñandú*) y repertorio de partes.
 2. **Digitalizar** — escaneo a 600 dpi, enderezado por marcas de registro, recorte por celda. → `pipeline/scripts/01_digitalizar.py`
 3. **Vectorizar** — Potrace por script (parámetros en `proyecto.py` › `POTRACE`); Image Trace de Affinity para glifos difíciles. Reglas de contorno, exportación SVG desde Affinity y bibliografía: [vectorizacion.md](vectorizacion.md). → `pipeline/scripts/02_importar.py`
